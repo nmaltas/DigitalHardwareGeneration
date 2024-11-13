@@ -143,12 +143,12 @@ begin
     wait until (CLockCount = 13);
 
     assert (ErrorCheckC = "10") report "ErrorCheck did not get raised in time." severity error;
-    assert (ValidOutC = '0') report "ValidOut did not go low in time." severity error;
+    assert (ValidOutC = '1') report "ValidOut did not remain high while in Error State." severity error;
 
     wait until (CLockCount = 16);
 
     assert (ErrorCheckC = "10") report "ErrorCheck did not stay raised." severity error;
-    assert (ValidOutC = '0') report "ValidOut got stay low." severity error;
+    assert (ValidOutC = '1') report "ValidOut did not remain high while in Error State." severity error;
 
     -- Test 4: Resetting from Error state
     assert FALSE report "Test 4" severity warning;
@@ -182,12 +182,12 @@ begin
     wait until (CLockCount = 24);
 
     assert (ErrorCheckC = "01") report "ErrorCheck did not get raised in time." severity error;
-    assert (ValidOutC = '0') report "ValidOut did not go low in time." severity error;
+    assert (ValidOutC = '1') report "ValidOut did not remain high while in Error State." severity error;
 
     wait until (CLockCount = 27);
 
     assert (ErrorCheckC = "01") report "ErrorCheck did not remain raised." severity error;
-    assert (ValidOutC = '0') report "ValidOut did not remain low while in Error State." severity error;
+    assert (ValidOutC = '1') report "ValidOut did not remain high while in Error State." severity error;
 
     -- Test 4: Resetting from Error state
     assert FALSE report "Test 4" severity warning;

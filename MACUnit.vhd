@@ -81,28 +81,30 @@ begin
             SumFeedback <= Sum;
             ValidOut1   <= ValidIn;
             ValidOut2   <= ValidOut1;
-            ErrorCheck1 <= "00";
+            ErrorCheck1 <= ErrorCheck1;
 
-            if (ValidIn = '1') then
+            if (ValidIn = '1' and (ErrorCheck1 = "00")) then
               Product2     <= Product1;
               CurrentState <= Run;
-            else
+            elsif (ValidIn = '0') then
               Product2     <= (others => '0');
               CurrentState <= CurrentState;
+            else
+              Product2     <= Product1;
+              CurrentState <= Error;
             end if;
             -----------------------------------------------------------------------
             --------------------------Run State------------------------------------
           when Run =>
             SumFeedback <= Sum;
             ValidOut1   <= ValidIn;
+            ValidOut2   <= ValidOut1;
             ErrorCheck1 <= (Overflow, Underflow);
 
             if ((Overflow = '1') or (Underflow = '1')) then
-              ValidOut2    <= '0';
+
               CurrentState <= Error;
             else
-              ValidOut2 <= ValidOut1;
-
               if (ValidIn = '1') then
                 Product2     <= Product1;
                 CurrentState <= Run;
@@ -114,14 +116,18 @@ begin
             ----------------------------------------------------------------------
             ------------------------Error State-----------------------------------
           when Error =>
-
-            Product2    <= (others => '0');
             SumFeedback <= Sum;
-            ValidOut1   <= '0';
-            ValidOut2   <= '0';
+            ValidOut1   <= ValidIn;
+            ValidOut2   <= ValidOut1;
             ErrorCheck1 <= ErrorCheck1;
 
-            CurrentState <= Error;
+            if (ValidIn = '1') then
+              Product2     <= Product1;
+              CurrentState <= Error;
+            else
+              Product2     <= (others => '0');
+              CurrentState <= Standby;
+            end if;
             ----------------------------------------------------------------------
             -------------------------Others---------------------------------------
           when others =>
