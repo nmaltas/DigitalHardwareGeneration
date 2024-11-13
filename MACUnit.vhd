@@ -78,40 +78,43 @@ begin
             ------------------------Standby State----------------------------------
           when Standby =>
 
-            Product2    <= (others => '0');
             SumFeedback <= Sum;
-            ValidOut1   <= '0';
+            ValidOut1   <= ValidIn;
             ValidOut2   <= ValidOut1;
             ErrorCheck1 <= "00";
 
             if (ValidIn = '1') then
+              Product2     <= Product1;
               CurrentState <= Run;
+            else
+              Product2     <= (others => '0');
+              CurrentState <= CurrentState;
             end if;
             -----------------------------------------------------------------------
             --------------------------Run State------------------------------------
           when Run =>
-
-            Product2    <= Product1;
             SumFeedback <= Sum;
-            ValidOut1   <= '1';
+            ValidOut1   <= ValidIn;
             ErrorCheck1 <= (Overflow, Underflow);
 
             if ((Overflow = '1') or (Underflow = '1')) then
-              CurrentState <= Error;
               ValidOut2    <= '0';
-
+              CurrentState <= Error;
             else
               ValidOut2 <= ValidOut1;
 
               if (ValidIn = '1') then
+                Product2     <= Product1;
                 CurrentState <= Run;
               else
+                Product2     <= (others => '0');
                 CurrentState <= Standby;
               end if;
             end if;
             ----------------------------------------------------------------------
             ------------------------Error State-----------------------------------
-          when Error             =>
+          when Error =>
+
             Product2    <= (others => '0');
             SumFeedback <= Sum;
             ValidOut1   <= '0';
@@ -121,13 +124,13 @@ begin
             CurrentState <= Error;
             ----------------------------------------------------------------------
             -------------------------Others---------------------------------------
-          when others            =>
-            Product2    <= (others => '0');
-            SumFeedback <= Sum;
-            ValidOut1   <= '0';
-            ValidOut2   <= ValidOut1;
-            ErrorCheck1 <= "11";
+          when others =>
 
+            Product2     <= (others => '0');
+            SumFeedback  <= Sum;
+            ErrorCheck1  <= "11";
+            ValidOut1    <= '0';
+            ValidOut2    <= '0';
             CurrentState <= Error;
             ----------------------------------------------------------------------
         end case;

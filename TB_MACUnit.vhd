@@ -93,7 +93,7 @@ begin
     assert (ValidOutC = '0') report "ValidOut got raised prematurely." severity error;
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
 
-    wait until (CLockCount = 5);
+    wait until (CLockCount = 4);
 
     assert (ValidOutC = '1') report "ValidOut did not get raised." severity error;
     assert (to_integer(DataOutC) = 10) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
@@ -104,15 +104,32 @@ begin
 
     ValidInC <= '0';
 
-    wait until (CLockCount = 6);
-    assert (ValidOutC = '1') report "ValidOut did not get raised." severity error;
+    wait until (CLockCount = 5);
+
+    assert (ValidOutC = '1') report "ValidOut went low too soon." severity error;
     assert (to_integer(DataOutC) = 20) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
 
+    wait until (CLockCount = 6);
+
+    ValidInC <= '1';
+
+    assert (ValidOutC = '0') report "ValidOut did not go low in time." severity error;
+    assert (to_integer(DataOutC) = 20) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
+    assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
+
+    wait until (CLockCount = 8);
+
+    assert (ValidOutC = '1') report "ValidOut did not get raised." severity error;
+    assert (to_integer(DataOutC) = 30) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
+    assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
+
+    ValidInC <= '0';
+
     wait until (CLockCount = 9);
 
-    assert (ValidOutC = '0') report "ValidOut got raised prematurely." severity error;
-    assert (to_integer(DataOutC) = 30) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
+    assert (ValidOutC = '1') report "ValidOut did not go low in time." severity error;
+    assert (to_integer(DataOutC) = 40) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
 
     -- Test 3: Testing overflow indication triggerring
@@ -123,12 +140,12 @@ begin
     DataInAC <= to_signed(125, DataInAC'length);
     DataInBC <= to_signed(125, DataInBC'length);
 
-    wait until (CLockCount = 14);
+    wait until (CLockCount = 13);
 
     assert (ErrorCheckC = "10") report "ErrorCheck did not get raised in time." severity error;
     assert (ValidOutC = '0') report "ValidOut did not go low in time." severity error;
 
-    wait until (CLockCount = 15);
+    wait until (CLockCount = 16);
 
     assert (ErrorCheckC = "10") report "ErrorCheck did not stay raised." severity error;
     assert (ValidOutC = '0') report "ValidOut got stay low." severity error;
@@ -137,11 +154,17 @@ begin
     assert FALSE report "Test 4" severity warning;
     Reset <= '1';
 
-    wait until (CLockCount = 16);
+    wait until (CLockCount = 17);
 
     assert (ErrorCheckC = "00") report "ErrorCheck did not reset properly." severity error;
     assert (ValidOutC = '0') report "ValidOut did not reset properly." severity error;
     assert (to_integer(DataOutC) = 0) report "DataOut did not reset properly. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
+
+    wait until (CLockCount = 20);
+
+    assert (ErrorCheckC = "00") report "ErrorCheck did not remain reset." severity error;
+    assert (ValidOutC = '0') report "ValidOut did not remain reset." severity error;
+    assert (to_integer(DataOutC) = 0) report "DataOut did not remain reset. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
 
     Reset <= '0';
 
@@ -151,31 +174,36 @@ begin
     DataInAC <= to_signed(127, DataInAC'length);
     DataInBC <= to_signed(-127, DataInBC'length);
 
-    wait until (CLockCount = 19);
+    wait until (CLockCount = 22);
 
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
     assert (ValidOutC = '1') report "ValidOut did not get raised in time." severity error;
 
-    wait until (CLockCount = 21);
+    wait until (CLockCount = 24);
 
     assert (ErrorCheckC = "01") report "ErrorCheck did not get raised in time." severity error;
     assert (ValidOutC = '0') report "ValidOut did not go low in time." severity error;
 
-    wait until (CLockCount = 24);
+    wait until (CLockCount = 27);
 
-    assert (ErrorCheckC = "01") report "ErrorCheck did not remain raised while in Error State." severity error;
+    assert (ErrorCheckC = "01") report "ErrorCheck did not remain raised." severity error;
     assert (ValidOutC = '0') report "ValidOut did not remain low while in Error State." severity error;
 
     -- Test 4: Resetting from Error state
     assert FALSE report "Test 4" severity warning;
-
     Reset <= '1';
 
-    wait until (CLockCount = 25);
+    wait until (CLockCount = 28);
 
     assert (ErrorCheckC = "00") report "ErrorCheck did not reset properly." severity error;
     assert (ValidOutC = '0') report "ValidOut did not reset properly." severity error;
     assert (to_integer(DataOutC) = 0) report "DataOut did not reset properly. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
+
+    wait until (CLockCount = 31);
+
+    assert (ErrorCheckC = "00") report "ErrorCheck did not remain reset." severity error;
+    assert (ValidOutC = '0') report "ValidOut did not remain reset." severity error;
+    assert (to_integer(DataOutC) = 0) report "DataOut did not remain reset. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
 
     Reset <= '0';
 
@@ -185,7 +213,7 @@ begin
     DataInAC <= to_signed(127, DataInAC'length);
     DataInBC <= to_signed(-1, DataInBC'length);
 
-    wait until (CLockCount = 27);
+    wait until (CLockCount = 32);
 
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
     assert (ValidOutC = '0') report "ValidOut got raised too soon." severity error;
@@ -194,7 +222,7 @@ begin
     DataInAC <= to_signed(100, DataInAC'length);
     DataInBC <= to_signed(-1, DataInBC'length);
 
-    wait until (CLockCount = 28);
+    wait until (CLockCount = 33);
 
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
     assert (ValidOutC = '1') report "ValidOut got raised too soon." severity error;
@@ -203,13 +231,13 @@ begin
     DataInAC <= to_signed(-100, DataInAC'length);
     DataInBC <= to_signed(1, DataInBC'length);
 
-    wait until (CLockCount = 29);
+    wait until (CLockCount = 34);
 
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
     assert (ValidOutC = '1') report "ValidOut got raised too soon." severity error;
     assert (to_integer(DataOutC) = (-227)) report "Data mismatch. DataOutC = " & integer'image(to_integer(DataOutC)) severity error;
 
-    wait until (CLockCount = 30);
+    wait until (CLockCount = 35);
 
     assert (ErrorCheckC = "00") report "ErrorCheck got raised mistakenly." severity error;
     assert (ValidOutC = '1') report "ValidOut got raised too soon." severity error;
