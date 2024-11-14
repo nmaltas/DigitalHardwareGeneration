@@ -35,7 +35,7 @@ architecture MACUnit1 of MACUnit is
   signal ValidOut1   : std_logic;
   signal ErrorCheck1 : std_logic_vector (1 downto 0);
 
-  type StateName is (Standby, Run, Done, Error);
+  type StateName is (Standby, Run);
   signal CurrentState : StateName;
 
 begin
@@ -91,7 +91,7 @@ begin
               CurrentState <= CurrentState;
             else
               Product2     <= Product1;
-              CurrentState <= Error;
+              CurrentState <= Run;
             end if;
             -----------------------------------------------------------------------
             --------------------------Run State------------------------------------
@@ -99,31 +99,16 @@ begin
             SumFeedback <= Sum;
             ValidOut1   <= ValidIn;
             ValidOut2   <= ValidOut1;
-            ErrorCheck1 <= (Overflow, Underflow);
 
-            if ((Overflow = '1') or (Underflow = '1')) then
-
-              CurrentState <= Error;
+            if (ErrorCheck1 = "00") then
+              ErrorCheck1 <= (Overflow, Underflow);
             else
-              if (ValidIn = '1') then
-                Product2     <= Product1;
-                CurrentState <= Run;
-              else
-                Product2     <= (others => '0');
-                CurrentState <= Standby;
-              end if;
+              ErrorCheck1 <= ErrorCheck1;
             end if;
-            ----------------------------------------------------------------------
-            ------------------------Error State-----------------------------------
-          when Error =>
-            SumFeedback <= Sum;
-            ValidOut1   <= ValidIn;
-            ValidOut2   <= ValidOut1;
-            ErrorCheck1 <= ErrorCheck1;
 
             if (ValidIn = '1') then
               Product2     <= Product1;
-              CurrentState <= Error;
+              CurrentState <= Run;
             else
               Product2     <= (others => '0');
               CurrentState <= Standby;
@@ -137,7 +122,7 @@ begin
             ErrorCheck1  <= "11";
             ValidOut1    <= '0';
             ValidOut2    <= '0';
-            CurrentState <= Error;
+            CurrentState <= Standby;
             ----------------------------------------------------------------------
         end case;
 
