@@ -2,15 +2,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use ieee.numeric_std.all;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
--- use IEEE.NUMERIC_STD.all;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity ControlModule is
 
   generic (
@@ -66,7 +57,7 @@ begin
       if (Reset = '1') then
         WEX          <= '0';
         WEM          <= '0';
-        Clear        <= '0';
+        Clear        <= '1';
         Hold         <= '0';
         OutputValid1 <= '0';
         InputReady1  <= '0';
