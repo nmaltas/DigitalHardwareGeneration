@@ -75,7 +75,7 @@ begin
 
   process
   begin
-    wait until ClockCount >= 50;
+    wait until ClockCount >= 100;
     assert FALSE report "Simulation completed successfully" severity failure;
   end process;
 
@@ -84,12 +84,56 @@ begin
   begin
 
     Reset <= '1';
-    wait for 6 ns;
+    wait until (CLockCount = 1);
     Reset <= '0';
 
-    DataIn      <= to_signed(5, DataIn'length);
+    DataIn      <= to_signed(1, DataIn'length);
     InputValid  <= '1';
     OutputReady <= '1';
+
+    wait until (CLockCount = 2);
+
+    wait until (CLockCount = 3);
+    DataIn <= to_signed(2, DataIn'length);
+
+    wait until (CLockCount = 4);
+    DataIn <= to_signed(3, DataIn'length);
+
+    wait until (CLockCount = 5);
+    DataIn <= to_signed(4, DataIn'length);
+
+    wait until (CLockCount = 6);
+    DataIn <= to_signed(5, DataIn'length);
+
+    wait until (CLockCount = 7);
+    DataIn <= to_signed(6, DataIn'length);
+
+    wait until (CLockCount = 8);
+    DataIn <= to_signed(7, DataIn'length);
+
+    wait until (CLockCount = 9);
+    DataIn <= to_signed(8, DataIn'length);
+
+    wait until (CLockCount = 10);
+    DataIn <= to_signed(9, DataIn'length);
+
+    wait until (CLockCount = 11);
+    DataIn <= to_signed(10, DataIn'length);
+
+    wait until (CLockCount = 12);
+    DataIn <= to_signed(11, DataIn'length);
+
+    wait until (CLockCount = 13);
+    DataIn <= to_signed(12, DataIn'length);
+
+    wait until (CLockCount = 32);
+    DataIn <= to_signed(127, DataIn'length);
+
+    wait until (CLockCount = 72);
+    DataIn <= to_signed(-128, DataIn'length);
+
+    wait until (CLockCount = 73);
+    DataIn <= to_signed(127, DataIn'length);
 
     wait;
   end process;

@@ -31,10 +31,9 @@ begin
       if (Address >= MemSize) then
         DataOut <= (others => '0');
       else
+        DataOut <= Data(Address);
         if (WE = '1') then
           Data(Address) <= DataIn;
-        else
-          DataOut <= Data(Address);
         end if;
       end if;
     end if;

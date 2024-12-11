@@ -60,6 +60,7 @@ architecture DatapathModule1 of DatapathModule is
 
   signal DataInX : signed ((Width - 1) downto 0);
   signal DataInM : signed ((Width - 1) downto 0);
+
 begin
 
   MemoryX : MemoryModule

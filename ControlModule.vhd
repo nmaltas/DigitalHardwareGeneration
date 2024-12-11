@@ -28,225 +28,247 @@ end ControlModule;
 
 architecture ControlModule1 of ControlModule is
 
-  type StateName is (Standby, Load, Run, Flush, Done);
+  type StateName is (Standby, LoadM, LoadX, Run, Flush, Done);
   signal CurrentState : StateName;
 
-  signal StateCounter : integer range 0 to (Size * Size);
-  signal RowCounter   : integer range 0 to Size;
-  signal OutputValid1 : std_logic;
-  signal AddressM1    : integer range 0 to ((Size * Size) - 1);
-  signal AddressX1    : integer range 0 to (Size - 1);
-  signal InputReady1  : std_logic;
+  signal ColumnCounter : integer range 0 to (Size * Size);
+  signal RowCounter    : integer range 0 to Size;
+  signal OutputValid1  : std_logic;
+  signal AddressM1     : integer range 0 to ((Size * Size) - 1);
+  signal AddressX1     : integer range 0 to (Size - 1);
+  signal InputReady1   : std_logic;
 
 begin
   -------------------------------------------------------------------------------------
   -------------------------Combinational Logic-----------------------------------------
   OutputValid <= OutputValid1;
   InputReady  <= InputReady1;
-  AddressM    <= AddressM1;
-  AddressX    <= AddressX1;
+  AddressM    <= (RowCounter * Size) + ColumnCounter;
+  AddressX    <= RowCounter;
   -------------------------------------------------------------------------------------
   -------------------------------------------------------------------------------------
 
   process (Clk)
   begin
 
-    if ((Clk'event) and (Clk = '1')) then
+    ----------------------------Asynchronous Reset--------------------------------------
+    if (Reset = '1') then
+      WEX           <= '0';
+      WEM           <= '0';
+      Clear         <= '1';
+      Hold          <= '0';
+      OutputValid1  <= '0';
+      InputReady1   <= '0';
+      RowCounter    <= 0;
+      ColumnCounter <= 0;
 
-      ----------------------------Synchronous Reset--------------------------------------
-      if (Reset = '1') then
-        WEX          <= '0';
-        WEM          <= '0';
-        Clear        <= '1';
-        Hold         <= '0';
-        OutputValid1 <= '0';
-        InputReady1  <= '0';
-        RowCounter   <= 0;
-        AddressX1    <= 0;
-        StateCounter <= 0;
-        AddressM1    <= 0;
+      CurrentState <= Standby;
 
-        CurrentState <= Standby;
-
-      else
+    else
+      if ((Clk'event) and (Clk = '1')) then
 
         case CurrentState is
 
             ------------------------Standby State----------------------------------
           when Standby =>
 
-            WEX          <= '0';
-            Clear        <= '0';
-            Hold         <= '0';
-            OutputValid1 <= '0';
-            InputReady1  <= '1';
-            RowCounter   <= 0;
-            AddressX1    <= 0;
-            AddressM1    <= 0;
+            WEX           <= '0';
+            Clear         <= '1';
+            Hold          <= '0';
+            OutputValid1  <= '0';
+            InputReady1   <= '1';
+            ColumnCounter <= 0;
+            RowCounter    <= 0;
 
             if (InputValid = '0') then
-              WEM          <= '0';
-              StateCounter <= 0;
+              WEM <= '0';
 
               CurrentState <= Standby;
 
             else
-              WEM          <= '1';
-              StateCounter <= StateCounter + 1;
+              WEM <= '1';
 
-              CurrentState <= Load;
+              CurrentState <= LoadM;
 
             end if;
             -----------------------------------------------------------------------
-            -------------------------Load State------------------------------------
-          when Load =>
+
+            -------------------------LoadM State------------------------------------
+          when LoadM =>
 
             Hold         <= '0';
-            Clear        <= '0';
+            Clear        <= '1';
             OutputValid1 <= '0';
+            InputReady1  <= '1';
 
             if (InputValid = '0') then -- Wait for valid input
-              InputReady1  <= InputReady1;
-              WEX          <= '0';
-              WEM          <= '0';
-              AddressM1    <= AddressM1;
-              StateCounter <= StateCounter;
-              AddressX1    <= AddressX1;
-              RowCounter   <= RowCounter;
+              WEX           <= '0';
+              WEM           <= '0';
+              ColumnCounter <= ColumnCounter;
+              RowCounter    <= RowCounter;
 
               CurrentState <= CurrentState;
 
             else
-              if (StateCounter < (Size * Size)) then -- Load Memory M first
-                InputReady1  <= '1';
-                WEX          <= '0';
-                WEM          <= '1';
-                AddressM1    <= StateCounter;
-                StateCounter <= StateCounter + 1;
-                AddressX1    <= AddressX1;
-                RowCounter   <= RowCounter;
+              if (ColumnCounter < (Size - 1)) then -- Increment ColumnCounter
+                WEX           <= '0';
+                WEM           <= '1';
+                ColumnCounter <= ColumnCounter + 1;
+                RowCounter    <= RowCounter;
 
                 CurrentState <= CurrentState;
 
               else
-                if (RowCounter < (Size - 1)) then -- When done with M, load Memory X
-                  InputReady1  <= '1';
-                  WEX          <= '1';
-                  WEM          <= '0';
-                  AddressM1    <= AddressM1;
-                  StateCounter <= StateCounter;
-                  AddressX1    <= RowCounter;
-                  RowCounter   <= RowCounter + 1;
+                if (RowCounter < (Size - 1)) then -- Increment RowCounter
+                  WEX           <= '0';
+                  WEM           <= '1';
+                  ColumnCounter <= 0;
+                  RowCounter    <= RowCounter + 1;
 
                   CurrentState <= CurrentState;
 
-                elsif (RowCounter = (Size - 1)) then -- Special case so that InputReady goes low when no more data can be obtained.
-                  InputReady1  <= '0';
-                  WEX          <= '1';
-                  WEM          <= '0';
-                  AddressM1    <= AddressM1;
-                  StateCounter <= StateCounter;
-                  AddressX1    <= RowCounter;
-                  RowCounter   <= RowCounter + 1;
+                else -- When done, break out and go to LoadX state
+                  WEX           <= '1';
+                  WEM           <= '0';
+                  ColumnCounter <= 0;
+                  RowCounter    <= 0;
 
-                  CurrentState <= CurrentState;
-
-                else -- When done, break out and go to Run state
-                  InputReady1  <= '0';
-                  WEX          <= '0';
-                  WEM          <= '0';
-                  AddressM1    <= 0;
-                  StateCounter <= 1;
-                  AddressX1    <= 0;
-                  RowCounter   <= 0;
-
-                  CurrentState <= Run;
+                  CurrentState <= LoadX;
 
                 end if;
               end if;
             end if;
-
             -----------------------------------------------------------------------
+
+            -------------------------LoadX State------------------------------------
+          when LoadX =>
+
+            Clear         <= '1';
+            Hold          <= '0';
+            OutputValid1  <= '0';
+            ColumnCounter <= 0;
+            WEM           <= '0';
+
+            if (InputValid = '0') then -- Wait for valid input
+              InputReady1 <= '1';
+              WEX         <= '0';
+              RowCounter  <= RowCounter;
+
+              CurrentState <= CurrentState;
+
+            else
+              if (RowCounter < (Size - 1)) then -- Increment RowCounter
+                InputReady1 <= '1';
+                WEX         <= '1';
+                RowCounter  <= RowCounter + 1;
+
+                CurrentState <= CurrentState;
+
+              else
+                InputReady1 <= '0';
+                WEX         <= '0';
+                RowCounter  <= 0;
+
+                CurrentState <= Flush;
+
+              end if;
+            end if;
+            -----------------------------------------------------------------------
+
             --------------------------Run State------------------------------------
           when Run =>
 
-            Clear       <= '0';
-            WEX         <= '0';
-            WEM         <= '0';
-            InputReady1 <= '0';
-            AddressX1   <= RowCounter;
-            AddressM1   <= (RowCounter * Size) + StateCounter;
+            Clear        <= '0';
+            Hold         <= '0';
+            WEX          <= '0';
+            WEM          <= '0';
+            InputReady1  <= '0';
+            OutputValid1 <= '0';
+            RowCounter   <= RowCounter;
 
-            if (StateCounter < Size) then -- Normal operation. The MAC Unit is calculating.
-              Hold         <= '0';
-              StateCounter <= StateCounter + 1;
-              RowCounter   <= RowCounter;
-              OutputValid1 <= '0';
+            if (ColumnCounter < Size) then -- Normal operation. The MAC Unit is calculating.
+              Hold          <= '0';
+              ColumnCounter <= ColumnCounter + 1;
 
               CurrentState <= Run;
 
             else -- The row calculation is complete. System moving to Done state. One more cycle is necessary for the data to be available.
-              Hold         <= '1';
-              StateCounter <= StateCounter + 1;
-              RowCounter   <= RowCounter + 1;
-              OutputValid1 <= '1';
+              ColumnCounter <= ColumnCounter;
 
               CurrentState <= Done;
 
             end if;
             -----------------------------------------------------------------------
+
             -------------------------Done State------------------------------------
           when Done =>
 
             WEX         <= '0';
             WEM         <= '0';
             InputReady1 <= '0';
-            AddressX1   <= RowCounter;
-            RowCounter  <= RowCounter;
-            AddressM1   <= RowCounter * Size;
 
             if (OutputReady = '0') then -- Wait until the data can be output.
-              OutputValid1 <= '1';
-              Hold         <= '1';
-              Clear        <= '0';
-              StateCounter <= 0;
+              Hold          <= '1';
+              Clear         <= '0';
+              OutputValid1  <= '1';
+              RowCounter    <= RowCounter;
+              ColumnCounter <= ColumnCounter;
 
               CurrentState <= Done;
 
             else
-              if (RowCounter < Size) then -- When ready, flush the system and start over with the next row.
-                OutputValid1 <= '0';
-                Hold         <= '0';
-                Clear        <= '1';
-                StateCounter <= 0;
+              ColumnCounter <= 0;
 
-                CurrentState <= Run;
-
-              else -- When ready, with all rows go back to Standby
+              if (OutputValid1 = '1') then
                 OutputValid1 <= '0';
-                Hold         <= '0';
-                Clear        <= '1';
-                StateCounter <= 0;
+              else
+                OutputValid1 <= '1';
+              end if;
+
+              if (RowCounter < (Size - 1)) then -- When ready, flush the system and start over with the next row.
+                Hold       <= '0';
+                Clear      <= '1';
+                RowCounter <= RowCounter + 1;
+
+                CurrentState <= Flush;
+
+              else -- If this is the last Done state, go back to Standby.
+                Hold       <= '0';
+                Clear      <= '1';
+                RowCounter <= 0;
 
                 CurrentState <= Standby;
 
               end if;
-
             end if;
             -----------------------------------------------------------------------
+
+            -------------------------Flush State-----------------------------------
+          when Flush =>
+
+            WEX           <= '0';
+            WEM           <= '0';
+            InputReady1   <= '0';
+            ColumnCounter <= ColumnCounter;
+            RowCounter    <= RowCounter;
+            OutputValid1  <= '0';
+            Hold          <= '0';
+            Clear         <= '1';
+
+            CurrentState <= Run;
+            ----------------------------------------------------------------------
+
             -------------------------Others---------------------------------------
           when others =>
 
-            WEX          <= '0';
-            Clear        <= '0';
-            Hold         <= '0';
-            OutputValid1 <= '0';
-            InputReady1  <= '0';
-            RowCounter   <= 0;
-            AddressX1    <= 0;
-            WEM          <= '0';
-            AddressM1    <= 0;
-            StateCounter <= 1;
+            WEX           <= '0';
+            Clear         <= '0';
+            Hold          <= '0';
+            OutputValid1  <= '0';
+            InputReady1   <= '0';
+            RowCounter    <= 0;
+            WEM           <= '0';
+            ColumnCounter <= 1;
 
             CurrentState <= Standby;
             ----------------------------------------------------------------------
