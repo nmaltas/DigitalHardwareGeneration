@@ -84,7 +84,7 @@ begin
   begin
 
     Reset <= '1';
-    wait until (CLockCount = 1);
+    wait until (ClockCount = 1);
     Reset <= '0';
 
     DataIn      <= to_signed(1, DataIn'length);
@@ -118,12 +118,21 @@ begin
     DataIn <= to_signed(9, DataIn'length);
 
     wait until (CLockCount = 11);
-    DataIn <= to_signed(10, DataIn'length);
+    DataIn <= to_signed(101, DataIn'length);
 
     wait until (CLockCount = 12);
-    DataIn <= to_signed(11, DataIn'length);
+    DataIn <= to_signed(102, DataIn'length);
 
     wait until (CLockCount = 13);
+    DataIn <= to_signed(103, DataIn'length);
+
+    wait until (CLockCount = 14);
+    DataIn <= to_signed(10, DataIn'length);
+
+    wait until (CLockCount = 15);
+    DataIn <= to_signed(11, DataIn'length);
+
+    wait until (CLockCount = 16);
     DataIn <= to_signed(12, DataIn'length);
 
     wait until (CLockCount = 32);

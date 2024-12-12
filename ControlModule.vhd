@@ -16,9 +16,11 @@ entity ControlModule is
     Reset       : in std_logic;
 
     AddressM    : out integer range 0 to ((Size * Size) - 1);
+    AddressB    : out integer range 0 to (Size - 1);
     AddressX    : out integer range 0 to (Size - 1);
-    WEX         : out std_logic;
     WEM         : out std_logic;
+    WEB         : out std_logic;
+    WEX         : out std_logic;
     Clear       : out std_logic;
     Hold        : out std_logic;
     OutputValid : out std_logic;
@@ -28,14 +30,12 @@ end ControlModule;
 
 architecture ControlModule1 of ControlModule is
 
-  type StateName is (Standby, LoadM, LoadX, Run, Flush, Done);
+  type StateName is (Standby, LoadM, LoadB, LoadX, Run, Flush, Done);
   signal CurrentState : StateName;
 
   signal ColumnCounter : integer range 0 to (Size * Size);
   signal RowCounter    : integer range 0 to Size;
   signal OutputValid1  : std_logic;
-  signal AddressM1     : integer range 0 to ((Size * Size) - 1);
-  signal AddressX1     : integer range 0 to (Size - 1);
   signal InputReady1   : std_logic;
 
 begin
@@ -45,6 +45,7 @@ begin
   InputReady  <= InputReady1;
   AddressM    <= (RowCounter * Size) + ColumnCounter;
   AddressX    <= RowCounter;
+  AddressB    <= RowCounter;
   -------------------------------------------------------------------------------------
   -------------------------------------------------------------------------------------
 
@@ -53,8 +54,9 @@ begin
 
     ----------------------------Asynchronous Reset--------------------------------------
     if (Reset = '1') then
-      WEX           <= '0';
       WEM           <= '0';
+      WEX           <= '0';
+      WEB           <= '0';
       Clear         <= '1';
       Hold          <= '0';
       OutputValid1  <= '0';
@@ -72,6 +74,7 @@ begin
             ------------------------Standby State----------------------------------
           when Standby =>
 
+            WEB           <= '0';
             WEX           <= '0';
             Clear         <= '1';
             Hold          <= '0';
@@ -100,10 +103,12 @@ begin
             Clear        <= '1';
             OutputValid1 <= '0';
             InputReady1  <= '1';
+            WEX          <= '0';
 
             if (InputValid = '0') then -- Wait for valid input
-              WEX           <= '0';
-              WEM           <= '0';
+              WEM <= '0';
+              WEB <= '0';
+
               ColumnCounter <= ColumnCounter;
               RowCounter    <= RowCounter;
 
@@ -111,8 +116,8 @@ begin
 
             else
               if (ColumnCounter < (Size - 1)) then -- Increment ColumnCounter
-                WEX           <= '0';
                 WEM           <= '1';
+                WEB           <= '0';
                 ColumnCounter <= ColumnCounter + 1;
                 RowCounter    <= RowCounter;
 
@@ -120,22 +125,59 @@ begin
 
               else
                 if (RowCounter < (Size - 1)) then -- Increment RowCounter
-                  WEX           <= '0';
                   WEM           <= '1';
+                  WEB           <= '0';
                   ColumnCounter <= 0;
                   RowCounter    <= RowCounter + 1;
 
                   CurrentState <= CurrentState;
 
-                else -- When done, break out and go to LoadX state
-                  WEX           <= '1';
+                else -- When done, break out and go to LoadB state
                   WEM           <= '0';
+                  WEB           <= '1';
                   ColumnCounter <= 0;
                   RowCounter    <= 0;
 
-                  CurrentState <= LoadX;
+                  CurrentState <= LoadB;
 
                 end if;
+              end if;
+            end if;
+            -----------------------------------------------------------------------
+
+            -------------------------LoadB State------------------------------------
+          when LoadB =>
+
+            Clear         <= '1';
+            Hold          <= '0';
+            OutputValid1  <= '0';
+            ColumnCounter <= 0;
+            InputReady1   <= '1';
+            WEM           <= '0';
+
+            if (InputValid = '0') then -- Wait for valid input
+              WEB        <= '0';
+              WEX        <= '0';
+              RowCounter <= RowCounter;
+
+              CurrentState <= CurrentState;
+
+            else
+              if (RowCounter < (Size - 1)) then -- Increment RowCounter
+                WEB        <= '1';
+                WEX        <= '0';
+                RowCounter <= RowCounter + 1;
+
+                CurrentState <= CurrentState;
+
+              else -- When done, break out and go to LoadX state
+
+                WEB        <= '0';
+                WEX        <= '1';
+                RowCounter <= 0;
+
+                CurrentState <= LoadX;
+
               end if;
             end if;
             -----------------------------------------------------------------------
@@ -148,6 +190,7 @@ begin
             OutputValid1  <= '0';
             ColumnCounter <= 0;
             WEM           <= '0';
+            WEB           <= '0';
 
             if (InputValid = '0') then -- Wait for valid input
               InputReady1 <= '1';
@@ -180,8 +223,9 @@ begin
 
             Clear        <= '0';
             Hold         <= '0';
-            WEX          <= '0';
             WEM          <= '0';
+            WEB          <= '0';
+            WEX          <= '0';
             InputReady1  <= '0';
             OutputValid1 <= '0';
             RowCounter   <= RowCounter;
@@ -203,8 +247,9 @@ begin
             -------------------------Done State------------------------------------
           when Done =>
 
-            WEX         <= '0';
             WEM         <= '0';
+            WEB         <= '0';
+            WEX         <= '0';
             InputReady1 <= '0';
 
             if (OutputReady = '0') then -- Wait until the data can be output.
@@ -246,8 +291,9 @@ begin
             -------------------------Flush State-----------------------------------
           when Flush =>
 
-            WEX           <= '0';
             WEM           <= '0';
+            WEB           <= '0';
+            WEX           <= '0';
             InputReady1   <= '0';
             ColumnCounter <= ColumnCounter;
             RowCounter    <= RowCounter;
@@ -261,13 +307,14 @@ begin
             -------------------------Others---------------------------------------
           when others =>
 
+            WEM           <= '0';
+            WEB           <= '0';
             WEX           <= '0';
             Clear         <= '0';
             Hold          <= '0';
             OutputValid1  <= '0';
             InputReady1   <= '0';
             RowCounter    <= 0;
-            WEM           <= '0';
             ColumnCounter <= 1;
 
             CurrentState <= Standby;

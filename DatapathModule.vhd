@@ -11,10 +11,12 @@ entity DatapathModule is
 
   port (
     DataIn   : in signed ((Width - 1) downto 0);
-    AddressX : in integer range 0 to (Size - 1);
     AddressM : in integer range 0 to ((Size * Size) - 1);
-    WEX      : in std_logic;
+    AddressB : in integer range 0 to (Size - 1);
+    AddressX : in integer range 0 to (Size - 1);
     WEM      : in std_logic;
+    WEB      : in std_logic;
+    WEX      : in std_logic;
     Hold     : in std_logic;
     Reset    : in std_logic;
     Clk      : in std_logic;
@@ -32,8 +34,9 @@ architecture DatapathModule1 of DatapathModule is
     );
 
     port (
-      DataInA : in signed(Width - 1 downto 0);
-      DataInB : in signed(Width - 1 downto 0);
+      DataIn1 : in signed(Width - 1 downto 0);
+      DataIn2 : in signed(Width - 1 downto 0);
+      DataIn3 : in signed(Width - 1 downto 0);
       Hold    : in std_logic;
       Clk     : in std_logic;
       Reset   : in std_logic;
@@ -58,24 +61,11 @@ architecture DatapathModule1 of DatapathModule is
     );
   end component;
 
-  signal DataInX : signed ((Width - 1) downto 0);
   signal DataInM : signed ((Width - 1) downto 0);
+  signal DataInB : signed ((Width - 1) downto 0);
+  signal DataInX : signed ((Width - 1) downto 0);
 
 begin
-
-  MemoryX : MemoryModule
-  generic map(
-    DataWidth => Width,
-    MemSize   => Size
-  )
-  port map
-  (
-    DataIn  => DataIn,
-    Address => AddressX,
-    WE      => WEX,
-    Clk     => Clk,
-    DataOut => DataInX
-  );
 
   MemoryM : MemoryModule
   generic map(
@@ -91,14 +81,43 @@ begin
     DataOut => DataInM
   );
 
+  MemoryB : MemoryModule
+  generic map(
+    DataWidth => Width,
+    MemSize   => Size
+  )
+  port map
+  (
+    DataIn  => DataIn,
+    Address => AddressB,
+    WE      => WEB,
+    Clk     => Clk,
+    DataOut => DataInB
+  );
+
+  MemoryX : MemoryModule
+  generic map(
+    DataWidth => Width,
+    MemSize   => Size
+  )
+  port map
+  (
+    DataIn  => DataIn,
+    Address => AddressX,
+    WE      => WEX,
+    Clk     => Clk,
+    DataOut => DataInX
+  );
+
   MACUNit_1 : MACUnit
   generic map(
     InputBitWidth => Width
   )
   port map
   (
-    DataInA     => DataInX,
-    DataInB     => DataInM,
+    DataIn1     => DataInM,
+    DataIn2     => DataInX,
+    DataIn3     => DataInB,
     Hold        => Hold,
     Clk         => Clk,
     Reset       => Reset,

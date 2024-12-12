@@ -39,8 +39,10 @@ architecture TopModule1 of TopModule is
 
       AddressM    : out integer range 0 to ((Size * Size) - 1);
       AddressX    : out integer range 0 to (Size - 1);
-      WEX         : out std_logic;
+      AddressB    : out integer range 0 to (Size - 1);
       WEM         : out std_logic;
+      WEB         : out std_logic;
+      WEX         : out std_logic;
       Clear       : out std_logic;
       Hold        : out std_logic;
       OutputValid : out std_logic;
@@ -56,10 +58,12 @@ architecture TopModule1 of TopModule is
 
     port (
       DataIn   : in signed ((Width - 1) downto 0);
-      AddressX : in integer range 0 to (Size - 1);
       AddressM : in integer range 0 to ((Size * Size) - 1);
-      WEX      : in std_logic;
+      AddressB : in integer range 0 to (Size - 1);
+      AddressX : in integer range 0 to (Size - 1);
       WEM      : in std_logic;
+      WEB      : in std_logic;
+      WEX      : in std_logic;
       Hold     : in std_logic;
       Reset    : in std_logic;
       Clk      : in std_logic;
@@ -70,9 +74,11 @@ architecture TopModule1 of TopModule is
   end component;
 
   signal AddressM : integer range 0 to ((Size * Size) - 1);
+  signal AddressB : integer range 0 to (Size - 1);
   signal AddressX : integer range 0 to (Size - 1);
-  signal WEX      : std_logic;
   signal WEM      : std_logic;
+  signal WEB      : std_logic;
+  signal WEX      : std_logic;
   signal Hold     : std_logic;
   signal Clear    : std_logic;
 
@@ -90,9 +96,11 @@ begin
     Clk         => Clk,
     Reset       => Reset,
     AddressM    => AddressM,
+    AddressB    => AddressB,
     AddressX    => AddressX,
-    WEX         => WEX,
     WEM         => WEM,
+    WEB         => WEB,
+    WEX         => WEX,
     Clear       => Clear,
     Hold        => Hold,
     OutputValid => OutputValid,
@@ -107,10 +115,12 @@ begin
   port map
   (
     DataIn      => DataIn,
-    AddressX    => AddressX,
     AddressM    => AddressM,
-    WEX         => WEX,
+    AddressB    => AddressB,
+    AddressX    => AddressX,
     WEM         => WEM,
+    WEB         => WEB,
+    WEX         => WEX,
     Hold        => Hold,
     Reset       => Clear,
     Clk         => Clk,
