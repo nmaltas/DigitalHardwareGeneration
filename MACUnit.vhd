@@ -9,8 +9,9 @@ entity MACUnit is
   );
 
   port (
-    DataInA : in signed(InputBitWidth - 1 downto 0);
-    DataInB : in signed(InputBitWidth - 1 downto 0);
+    DataIn1 : in signed(InputBitWidth - 1 downto 0);
+    DataIn2 : in signed(InputBitWidth - 1 downto 0);
+    DataIn3 : in signed(InputBitWidth - 1 downto 0);
     Hold    : in std_logic;
     Clk     : in std_logic;
     Reset   : in std_logic;
@@ -35,7 +36,7 @@ architecture MACUnit1 of MACUnit is
 
 begin
 
-  Product1 <= DataInA * DataInB;
+  Product1 <= DataIn1 * DataIn2;
 
   Sum <= SumFeedback + Product2;
 
@@ -55,15 +56,14 @@ begin
   process (Clk)
   begin
 
-    if ((Clk'event) and (Clk = '1')) then
+    ----------------------------Synchronous Reset--------------------------------------
+    if (Reset = '1') then
+      Product2    <= (others                                         => '0');
+      SumFeedback <= (((InputBitWidth * 2) - 1) downto InputBitWidth => DataIn3(InputBitWidth - 1)) & DataIn3;
+      ErrorCheck1 <= "00";
 
-      ----------------------------Synchronous Reset--------------------------------------
-      if (Reset = '1') then
-        Product2    <= (others => '0');
-        SumFeedback <= (others => '0');
-        ErrorCheck1 <= "00";
-
-      else
+    else
+      if ((Clk'event) and (Clk = '1')) then
         ---------------------------- Hold current value when Hold is asserted --------------------------------------
         if (Hold = '1') then
           Product2    <= Product2;
