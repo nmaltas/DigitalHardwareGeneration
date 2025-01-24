@@ -62,23 +62,21 @@ begin
       SumFeedback <= (((InputBitWidth * 2) - 1) downto InputBitWidth => DataIn3(InputBitWidth - 1)) & DataIn3;
       ErrorCheck1 <= "00";
 
-    else
-      if ((Clk'event) and (Clk = '1')) then
-        ---------------------------- Hold current value when Hold is asserted --------------------------------------
-        if (Hold = '1') then
-          Product2    <= Product2;
-          SumFeedback <= SumFeedback;
-          ErrorCheck1 <= ErrorCheck1;
-          ---------------------------- Otherwise run --------------------------------------
-        else
-          Product2    <= Product1;
-          SumFeedback <= Sum;
+    elsif ((Clk'event) and (Clk = '1')) then
+      ---------------------------- Hold current value when Hold is asserted --------------------------------------
+      if (Hold = '1') then
+        Product2    <= Product2;
+        SumFeedback <= SumFeedback;
+        ErrorCheck1 <= ErrorCheck1;
+        ---------------------------- Otherwise run --------------------------------------
+      else
+        Product2    <= Product1;
+        SumFeedback <= Sum;
 
-          if (ErrorCheck1 = "00") then
-            ErrorCheck1 <= (Overflow, Underflow);
-          else
-            ErrorCheck1 <= ErrorCheck1;
-          end if;
+        if (ErrorCheck1 = "00") then
+          ErrorCheck1 <= (Overflow, Underflow);
+        else
+          ErrorCheck1 <= ErrorCheck1;
         end if;
       end if;
     end if;

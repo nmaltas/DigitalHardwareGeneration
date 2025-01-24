@@ -31,8 +31,10 @@ architecture TB_TopModule1 of TB_TopModule is
     );
   end component;
 
-  signal Clk        : std_logic              := '0';
-  signal ClockCount : integer range 0 to 555 := 0;
+  signal Clk             : std_logic               := '0';
+  signal ClockCount      : integer range 0 to 555  := 0;
+  signal TotalClockCount : integer range 0 to 1023 := 0;
+  signal NewTestCase     : std_logic               := '0';
 
   signal InputValid  : std_logic := '0';
   signal OutputReady : std_logic := '0';
@@ -70,108 +72,198 @@ begin
   begin
     wait until Clk'event and Clk = '1';
     wait for 1 ns;
-    ClockCount <= ClockCount + 1;
+    TotalClockCount <= TotalClockCount + 1;
+
+    if (NewTestCase = '1') then
+      ClockCount <= 0;
+    else
+      ClockCount <= ClockCount + 1;
+    end if;
   end process;
 
   process
   begin
-    wait until ClockCount >= 100;
+    wait until TotalClockCount >= 100;
     assert FALSE report "Simulation completed successfully" severity failure;
   end process;
 
   ------------------------------ Simulation Stimuli ----------------------------
   process
+    variable i : integer := 0;
   begin
 
-    Reset <= '1';
+    ---------- Test 0 : Reset ------------------------
+    Reset       <= '1';
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
     wait until (ClockCount = 1);
     Reset <= '0';
 
-    DataIn      <= to_signed(1, DataIn'length);
+    assert (OutputValid = '0') report "OutputValid does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    assert (InputReady = '0') report "InputReady does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    assert (ErrorCheck2 = "00") report "ErrorCheck2 does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    --------------------------------------------------
+
+    ---------- Test 1a : Memory Loading ---------------
+    -- Abrupt InputValid deassertion and Reset
+
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
     InputValid  <= '1';
     OutputReady <= '1';
 
-    wait until (CLockCount = 2);
+    i := 1;
 
-    wait until (CLockCount = 3);
-    DataIn <= to_signed(2, DataIn'length);
+    -- Loading M
+    while i <= 24 loop
+      DataIn  <= to_signed(i, DataIn'length);
 
-    wait until (CLockCount = 4);
-    DataIn <= to_signed(3, DataIn'length);
+      wait until (ClockCount = i);
 
-    wait until (CLockCount = 5);
-    DataIn <= to_signed(4, DataIn'length);
+      assert (OutputValid = '0') report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (InputReady = '1') report "InputReady does not remain high. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (ErrorCheck2 = "00") report "ErrorCheck2 got raised mistakenly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
 
-    wait until (CLockCount = 6);
-    DataIn <= to_signed(5, DataIn'length);
+      if (i mod 5 = 0) then
+        InputValid <= '0';
+      elsif (i mod 3 = 0) then
+        InputValid <= '1';
+      else
+        InputValid <= InputValid;
+      end if;
 
-    wait until (CLockCount = 7);
-    DataIn <= to_signed(6, DataIn'length);
+      if (i mod 2 = 0) then
+        OutputReady <= not OutputReady;
+      else
+        OutputReady <= OutputReady;
+      end if;
 
-    wait until (CLockCount = 8);
-    DataIn <= to_signed(7, DataIn'length);
+      i := i + 1;
+    end loop;
+    ------------------------------------------------------------------------------
 
-    wait until (CLockCount = 9);
-    DataIn <= to_signed(8, DataIn'length);
+    ---------- Test 0 : Reset ------------------------
+    Reset       <= '1';
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
 
-    wait until (CLockCount = 10);
-    DataIn <= to_signed(9, DataIn'length);
+    wait until (ClockCount = 1);
+    Reset <= '0';
 
-    wait until (CLockCount = 11);
-    DataIn <= to_signed(10, DataIn'length);
+    assert (OutputValid = '0') report "OutputValid does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    assert (InputReady = '0') report "InputReady does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    assert (ErrorCheck2 = "00") report "ErrorCheck2 does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    --------------------------------------------------
 
-    wait until (CLockCount = 12);
-    DataIn <= to_signed(11, DataIn'length);
+    ---------- Test 1b : Memory Loading ---------------
+    -- Abrupt InputValid deassertion and Reset
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
 
-    wait until (CLockCount = 13);
-    DataIn <= to_signed(12, DataIn'length);
+    InputValid  <= '1';
+    OutputReady <= '1';
 
-    wait until (CLockCount = 14);
-    DataIn <= to_signed(13, DataIn'length);
+    -- Loading M
+    i := 1;
 
-    wait until (CLockCount = 15);
-    DataIn <= to_signed(14, DataIn'length);
+    while i <= 16 loop
+      DataIn  <= to_signed(i, DataIn'length);
 
-    wait until (CLockCount = 16);
-    DataIn <= to_signed(15, DataIn'length);
+      wait until (ClockCount = i);
 
-    wait until (CLockCount = 17);
-    DataIn <= to_signed(16, DataIn'length);
+      assert (OutputValid = '0') report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (InputReady = '1') report "InputReady does not remain high. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (ErrorCheck2 = "00") report "ErrorCheck2 got raised mistakenly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
 
-    wait until (CLockCount = 18);
-    DataIn <= to_signed(100, DataIn'length);
+      i := i + 1;
+    end loop;
 
-    wait until (CLockCount = 19);
-    DataIn <= to_signed(101, DataIn'length);
+    -- Loading B
+    i := 1;
 
-    wait until (CLockCount = 20);
-    DataIn <= to_signed(102, DataIn'length);
+    while i <= 4 loop
+      DataIn  <= to_signed(i * 10, DataIn'length);
 
-    wait until (CLockCount = 21);
-    DataIn <= to_signed(103, DataIn'length);
+      wait until (ClockCount = 16 + i);
 
-    wait until (CLockCount = 22);
-    DataIn <= to_signed(10, DataIn'length);
+      assert (OutputValid = '0') report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (InputReady = '1') report "InputReady does not remain high. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (ErrorCheck2 = "00") report "ErrorCheck2 got raised mistakenly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
 
-    wait until (CLockCount = 23);
-    DataIn <= to_signed(20, DataIn'length);
+      i := i + 1;
+    end loop;
 
-    wait until (CLockCount = 24);
-    DataIn <= to_signed(30, DataIn'length);
+    -- Loading X
+    i := 1;
 
-    wait until (CLockCount = 25);
-    DataIn <= to_signed(40, DataIn'length);
+    while i <= 4 loop
+      DataIn  <= to_signed(i * 11, DataIn'length);
 
-    wait until (CLockCount = 32);
-    DataIn <= to_signed(127, DataIn'length);
+      wait until (ClockCount = 20 + i);
 
-    wait until (CLockCount = 72);
-    DataIn <= to_signed(-128, DataIn'length);
+      assert (OutputValid = '0') report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (InputReady = '1') report "InputReady does not remain high. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+      assert (ErrorCheck2 = "00") report "ErrorCheck2 got raised mistakenly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
 
-    wait until (CLockCount = 73);
-    DataIn <= to_signed(127, DataIn'length);
+      i := i + 1;
+    end loop;
+    --------------------------------------------------
 
+    ---------- Test 2a : Calculation -----------------
+    -- Abrupt OutputReady deassertion and Reset
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
+    InputValid  <= '1';
+    OutputReady <= '1';
+
+    i := 1;
+
+    while i <= 35 loop
+
+      wait until (ClockCount = i);
+
+      -- Insert checks. NOT FOR DATAOUT YET. Test 2b will do that
+
+      if (i mod 5 = 0) then
+        OutputReady <= '0';
+      elsif (i mod 3 = 0) then
+        OutputReady <= '1';
+      else
+        OutputReady <= OutputReady;
+      end if;
+
+      if (i mod 2 = 0) then
+        InputValid <= not InputValid;
+      else
+        InputValid <= InputValid;
+      end if;
+
+      i := i + 1;
+    end loop;
+    --------------------------------------------------
+
+    ---------- Test 0 : Reset ------------------------
+    Reset       <= '1';
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
+    wait until (ClockCount = 1);
+    Reset <= '0';
+
+    assert (OutputValid = '0') report "OutputValid does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    assert (InputReady = '0') report "InputReady does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    assert (ErrorCheck2 = "00") report "ErrorCheck2 does not reset properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+    --------------------------------------------------
     wait;
   end process;
-  ------------------------------------------------------------------------------
+
 end TB_TopModule1;
