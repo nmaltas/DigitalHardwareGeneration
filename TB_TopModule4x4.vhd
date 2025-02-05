@@ -15,7 +15,7 @@ architecture TB_TopModule1 of TB_TopModule is
   component TopModule is
     generic (
       Width : integer := 8;
-      Size  : integer := 3
+      Size  : integer := 4
     );
 
     port (
@@ -46,20 +46,6 @@ architecture TB_TopModule1 of TB_TopModule is
   signal OutputValid : std_logic                           := '0';
   signal InputReady  : std_logic                           := '0';
   signal ErrorCheck2 : std_logic_vector (1 downto 0)       := (others => '0');
-
-  type InputTable is array ((Size + 1) downto 0, (Size - 1) downto 0) of signed(((Width * 2) - 1) downto 0);
-  type OutputTable is array (Size - 1 downto 0) of signed(((Width * 2) - 1) downto 0);
-
-  signal InputTable : Input1 := (
-  (1, 2, 3, 4),
-  (5, 6, 7, 8),
-  (9, 10, 11, 12),
-  (13, 14, 15, 16),
-  (10, 11, 12, 13),
-  (-100, -101, -102, -103)
-  );
-
-  signal OutputTable : Output1 := (0, 0, 0, 0);
 
 begin
 
@@ -106,8 +92,30 @@ begin
   process
     variable i    : integer := 0;
     variable Pass : boolean := true;
+
+    variable Input1 : InputTable := (
+    (3, -1, 4, 2),
+    (5, 2, 3, 1),
+    (4, 5, -2, 3),
+    (-1, 4, -5, -2),
+    (2, -5, 3, 1),
+    (4, -2, -5, -3)
+    );
+
+    variable Output1 : OutputTable := (0, 0, 0, 0);
   begin
 
+    --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Calculate the Expected Output @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    Output1 := CalculateOutput(Input1);
+    -- i       := 0;
+    -- while i <= 3 loop
+    --   assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output1(i)) severity note;
+
+    --   i := i + 1;
+    -- end loop;
+    --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    -- Test 0 : Resetting the system
     Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
 
     if (Pass = true) then
