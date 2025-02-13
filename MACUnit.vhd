@@ -58,7 +58,8 @@ begin
 
     ----------------------------Synchronous Reset--------------------------------------
     if (Reset = '1') then
-      Product2    <= (others                                         => '0');
+      Product2 <= (others => '0');
+
       SumFeedback <= (((InputBitWidth * 2) - 1) downto InputBitWidth => DataIn3(InputBitWidth - 1)) & DataIn3;
       ErrorCheck1 <= "00";
 

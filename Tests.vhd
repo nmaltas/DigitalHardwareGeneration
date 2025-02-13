@@ -61,6 +61,25 @@ package Tests is
     variable Pass      : out boolean
   );
 
+  -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
+  procedure Test2a(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Input1        : in InputTable;
+    variable Output1       : out OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
 end package Tests;
 
 package body Tests is
@@ -152,7 +171,7 @@ package body Tests is
 
   --------------------------------------------------------------------
   --------------------------------------------------------------------
-  -- Test 1 : Memory Loading.
+  -- Test 1 : Memory Loading state.
   --------------------------------------------------------------------
   -- Test 1a : Memory Loading with abrupt InputValid deassertion and reset
   --------------------------------------------------------------------
@@ -171,10 +190,10 @@ package body Tests is
     signal DataIn      : out signed ((Width - 1) downto 0);
     variable Pass      : out boolean) is
 
-    variable TempPass                        : boolean;
-    variable i, j, k, InputValue             : integer;
-    variable TempOutputReady, TempInputValid : std_logic;
-    variable TempDataIn                      : signed ((Width - 1) downto 0);
+    variable TempPass                        : boolean                       := true;
+    variable i, j, k, InputValue             : integer                       := 0;
+    variable TempOutputReady, TempInputValid : std_logic                     := '0';
+    variable TempDataIn                      : signed ((Width - 1) downto 0) := (others => '0');
 
   begin
 
@@ -191,7 +210,7 @@ package body Tests is
     OutputReady <= TempOutputReady;
 
     k := 1;
-
+    wait until (ClockCount = 1);
     -- Loading Memory
 
     -- Cycle through the 2D array rows
@@ -219,7 +238,8 @@ package body Tests is
         -- Only progress with the test when InputValid is high.
         if (TempInputValid = '1') then
           TempDataIn := to_signed(Input1(i, j), DataIn'length);
-          j          := j + 1;
+          assert (false) report "Data : " & integer'image(Input1(i, j)) severity note;
+          j := j + 1;
         end if;
 
         -- Pass the variable values to drive the signals.
@@ -227,7 +247,7 @@ package body Tests is
         OutputReady <= TempOutputReady;
         DataIn      <= TempDataIn;
 
-        wait until (ClockCount = k);
+        wait until (ClockCount = k + 1);
 
         -- Output must remain low throughout the loading stage.
         if (OutputValid /= '0') then
@@ -277,10 +297,10 @@ package body Tests is
     signal DataIn      : out signed ((Width - 1) downto 0);
     variable Pass      : out boolean) is
 
-    variable TempPass                        : boolean;
-    variable i, j, k, InputValue             : integer;
-    variable TempOutputReady, TempInputValid : std_logic;
-    variable TempDataIn                      : signed ((Width - 1) downto 0);
+    variable TempPass                        : boolean                       := false;
+    variable i, j, k, InputValue             : integer                       := 0;
+    variable TempOutputReady, TempInputValid : std_logic                     := '0';
+    variable TempDataIn                      : signed ((Width - 1) downto 0) := (others => '0');
   begin
 
     -- Initial setup.
@@ -342,5 +362,98 @@ package body Tests is
 
   end procedure Test1b;
   --------------------------------------------------------------------
+
+  --------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- Test 2 : Calculation and output states.
+  --------------------------------------------------------------------
+  -- Test 2aa : Calculation. Abrupt OutputReady deassertion.
+  --------------------------------------------------------------------
+  procedure Test2a(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Input1        : in InputTable;
+    variable Output1       : out OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean                       := false;
+    variable i, j, k, InputValue             : integer                       := 0;
+    variable TempOutputReady, TempInputValid : std_logic                     := '0';
+    variable TempDataIn                      : signed ((Width - 1) downto 0) := (others => '0');
+  begin
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
+    InputValid  <= '1';
+    OutputReady <= '1';
+
+    k := 1;
+
+    i := 0;
+    while i < Size loop
+
+      -- Deassert OutputReady pseudorandomly.
+      if (k mod 13 = 0) then
+        TempOutputReady := '0';
+      elsif (k mod 5 = 0) then
+        TempOutputReady := '1';
+      else
+        TempOutputReady := TempOutputReady;
+      end if;
+      -- Deassert InputValid pseudorandomly.
+      if (k mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+      -- Only progress with the test when OutputReady and OutputValid are high.
+      if (TempOutputReady = '1' and OutputValid = '1') then
+        -- When OutputValid goes high, the correct Data must be output.
+
+        -- NEEDS FIXING
+        assert(to_integer(DataOut) = Output1(i)) report "Incorrect DataOut at position " & integer'image(i) & " : " & integer'image(to_integer(DataOut)) & ". Expected : " & integer'image(Output(i))severity error;
+
+        i := i + 1;
+      end if;
+
+      InputValid  <= TempInputValid;
+      OutputReady <= TempOutputReady;
+
+      wait until (ClockCount = k);
+
+      -- InputReady must remain low throughout the loading stage.
+      if (InputReady /= '0') then
+        report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+      -- ErrorCheck must remain low in this test.
+      if (ErrorCheck2 /= "00") then
+        report "ErrorCheck2 got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      k := k + 1;
+    end loop;
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 2aa : PASS" severity note;
+    else
+      report "Test 2aa : FAIL" severity error;
+    end if;
+
+  end procedure Test2a;
 
 end package body Tests;

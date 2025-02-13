@@ -84,7 +84,7 @@ begin
 
   process
   begin
-    wait until TotalClockCount >= 100;
+    wait until TotalClockCount >= 200;
     assert FALSE report "Simulation completed successfully" severity failure;
   end process;
 
@@ -107,12 +107,12 @@ begin
 
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Calculate the Expected Output @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     Output1 := CalculateOutput(Input1);
-    -- i       := 0;
-    -- while i <= 3 loop
-    --   assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output1(i)) severity note;
+    i       := 0;
+    while i <= 3 loop
+      assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output1(i)) severity note;
 
-    --   i := i + 1;
-    -- end loop;
+      i := i + 1;
+    end loop;
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     -- Test 0 : Resetting the system
@@ -127,39 +127,8 @@ begin
     -- Test 1b: Memory Loading. Regular operation.
     Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
 
-    -- ---------- Test 2a : Calculation -----------------
-    -- -- Abrupt OutputReady deassertion and Reset
-    -- NewTestCase <= '1';
-    -- wait for 10ns;
-    -- NewTestCase <= '0';
-
-    -- InputValid  <= '1';
-    -- OutputReady <= '1';
-
-    -- i := 1;
-
-    -- while i <= 35 loop
-
-    --   wait until (ClockCount = i);
-
-    --   -- Insert checks. NOT FOR DATAOUT YET. Test 2b will do that
-
-    --   if (i mod 5 = 0) then
-    --     OutputReady <= '0';
-    --   elsif (i mod 3 = 0) then
-    --     OutputReady <= '1';
-    --   else
-    --     OutputReady <= OutputReady;
-    --   end if;
-
-    --   if (i mod 2 = 0) then
-    --     InputValid <= not InputValid;
-    --   else
-    --     InputValid <= InputValid;
-    --   end if;
-
-    --   i := i + 1;
-    -- end loop;
+    -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
+    Test2a(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Input1, Output1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
     -- --------------------------------------------------
 
     -- ---------- Test 0 : Reset ------------------------
