@@ -62,7 +62,7 @@ package Tests is
   );
 
   -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
-  procedure Test2a(
+  procedure Test2aa(
     signal ClockCount      : in integer;
     signal OutputValid     : in std_logic;
     signal InputReady      : in std_logic;
@@ -70,7 +70,7 @@ package Tests is
     signal TotalClockCount : in integer;
     signal DataOut         : in signed (((Width * 2) - 1) downto 0);
     variable Input1        : in InputTable;
-    variable Output1       : out OutputTable;
+    variable Output1       : in OutputTable;
 
     signal Reset       : out std_logic;
     signal NewTestCase : out std_logic;
@@ -78,6 +78,10 @@ package Tests is
     signal OutputReady : out std_logic;
     signal DataIn      : out signed ((Width - 1) downto 0);
     variable Pass      : out boolean
+  );
+
+  procedure PrufungsSalat(
+    variable Output1 : in OutputTable
   );
 
 end package Tests;
@@ -369,7 +373,7 @@ package body Tests is
   --------------------------------------------------------------------
   -- Test 2aa : Calculation. Abrupt OutputReady deassertion.
   --------------------------------------------------------------------
-  procedure Test2a(
+  procedure Test2aa(
     signal ClockCount      : in integer;
     signal OutputValid     : in std_logic;
     signal InputReady      : in std_logic;
@@ -377,7 +381,7 @@ package body Tests is
     signal TotalClockCount : in integer;
     signal DataOut         : in signed (((Width * 2) - 1) downto 0);
     variable Input1        : in InputTable;
-    variable Output1       : out OutputTable;
+    variable Output1       : in OutputTable;
 
     signal Reset       : out std_logic;
     signal NewTestCase : out std_logic;
@@ -386,7 +390,7 @@ package body Tests is
     signal DataIn      : out signed ((Width - 1) downto 0);
     variable Pass      : out boolean) is
 
-    variable TempPass                        : boolean                       := false;
+    variable TempPass                        : boolean                       := true;
     variable i, j, k, InputValue             : integer                       := 0;
     variable TempOutputReady, TempInputValid : std_logic                     := '0';
     variable TempDataIn                      : signed ((Width - 1) downto 0) := (others => '0');
@@ -421,9 +425,12 @@ package body Tests is
       if (TempOutputReady = '1' and OutputValid = '1') then
         -- When OutputValid goes high, the correct Data must be output.
 
-        -- NEEDS FIXING
-        assert(to_integer(DataOut) = Output1(i)) report "Incorrect DataOut at position " & integer'image(i) & " : " & integer'image(to_integer(DataOut)) & ". Expected : " & integer'image(Output(i))severity error;
-
+        if (DataOut /= Output1(i)) then
+          report "Incorrect DataOut at position " & integer'image(i) & " : " & integer'image(to_integer(DataOut)) & ". Expected : " & integer'image(Output1(i))severity error;
+          TempPass := false;
+        else
+          report "Output = " & integer'image(to_integer(DataOut)) severity note;
+        end if;
         i := i + 1;
       end if;
 
@@ -454,6 +461,26 @@ package body Tests is
       report "Test 2aa : FAIL" severity error;
     end if;
 
-  end procedure Test2a;
+  end procedure Test2aa;
+
+  -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  -- @@@@@@@@@@@@@@@@@@@@@ FOR TESTING PURPOSES @@@@@@@@@@@@@@@@@@@@
+  -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  procedure PrufungsSalat(
+    variable Output1 : in OutputTable) is
+
+    variable i : integer := 0;
+  begin
+    i := 0;
+    while i <= 3 loop
+      assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output1(i)) severity note;
+
+      i := i + 1;
+    end loop;
+  end procedure PrufungsSalat;
+
+  -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  -- @@@@@@@@@@@@@@@@@@@@@ FOR TESTING PURPOSES @@@@@@@@@@@@@@@@@@@@
+  -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 end package body Tests;
