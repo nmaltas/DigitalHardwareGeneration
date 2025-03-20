@@ -113,13 +113,28 @@ begin
 
       i := i + 1;
     end loop;
+
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    report "Test 0 starting at clock: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 0 : Resetting the system
+    Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
+
+    report "Test 1a starting at clock: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 1a : Memory Loading with abrupt InputValid deassertion and reset
+    Test1a(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
 
     -- Test 0 : Resetting the system
     Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
 
-    -- Test 1a : Memory Loading with abrupt InputValid deassertion and reset
-    Test1a(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    report "Test 1b starting at clock: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 1b: Memory Loading. Regular operation.
+    Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    report "Test 2aa starting at clock: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
+    Test2aa(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    -- --------------------------------------------------
 
     -- Test 0 : Resetting the system
     Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
@@ -127,9 +142,12 @@ begin
     -- Test 1b: Memory Loading. Regular operation.
     Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
 
-    -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
-    Test2a(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Input1, Output1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    report "Test 2ab starting at clock: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 2ab : Calculation. Abrupt OutputReady deassertion and Reset.
+    Test2ab(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
     -- --------------------------------------------------
+
+    -- PrufungsSalat(Output1);
 
     -- ---------- Test 0 : Reset ------------------------
     -- Reset       <= '1';
