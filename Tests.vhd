@@ -61,7 +61,7 @@ package Tests is
     variable Pass      : out boolean
   );
 
-  -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
+  -- Test 2aa : Calculation. Abrupt OutputReady deassertion.
   procedure Test2aa(
     signal ClockCount      : in integer;
     signal OutputValid     : in std_logic;
@@ -97,10 +97,27 @@ package Tests is
     variable Pass      : out boolean
   );
 
+  -- Test 2ba : Calculation. Overflow test.
+  procedure Test2ba(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
   procedure PrufungsSalat(
     variable Output1 : in OutputTable
   );
-
 end package Tests;
 
 package body Tests is
@@ -567,6 +584,42 @@ package body Tests is
     end if;
 
   end procedure Test2ab;
+
+  --------------------------------------------------------------------
+  -- Test 2ba : Calculation. Abrupt OutputReady deassertion.
+  --------------------------------------------------------------------
+  procedure Test2ba(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean   := true;
+    variable i, j, k, InputValue             : integer   := 0;
+    variable TempOutputReady, TempInputValid : std_logic := '0';
+  begin
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
+    InputValid  <= '1';
+    OutputReady <= '1';
+
+    k := 1;
+
+    report "Hey!!" severity error;
+
+  end procedure Test2ba;
 
   -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   -- @@@@@@@@@@@@@@@@@@@@@ FOR TESTING PURPOSES @@@@@@@@@@@@@@@@@@@@
