@@ -84,7 +84,7 @@ begin
 
   process
   begin
-    wait until TotalClockCount >= 200;
+    wait until TotalClockCount >= 500;
     assert FALSE report "Simulation completed successfully" severity failure;
   end process;
 
@@ -115,12 +115,21 @@ begin
 
     -- Going to cause an underflow.
     variable Input3 : InputTable := (
-    (3, 1, 4, 2), -- This is M
-    (5, 2, 3, 1),
-    (4, 5, -2, 3),
-    (-1, 4, -5, -2),
-    (4, -2, -5, -3), -- This is B
-    (2, -5, 3, 1) -- This is X
+    (5, 10, -4, 23), -- This is M
+    (-116, 121, -113, 125),
+    (-114, 93, -102, 111),
+    (-1, -41, -52, -25),
+    (42, -23, 75, -13), -- This is B
+    (76, -99, 85, -91) -- This is X
+    );
+
+    variable Input4 : InputTable := (
+    (3, -1, 5, 2), -- This is M
+    (5, 2, 4, 1),
+    (13, 5, -1, 3),
+    (-1, 14, -5, -2),
+    (4, -2, -16, -3), -- This is B
+    (2, -55, 3, 1) -- This is X
     );
 
     -- Output without overflow/underflow.
@@ -129,16 +138,19 @@ begin
     variable Output2 : OutputTable := (0, 0, 0, 0);
     -- Output with underflow.
     variable Output3 : OutputTable := (0, 0, 0, 0);
+    -- 2nd output without overflow/underflow.
+    variable Output4 : OutputTable := (0, 0, 0, 0);
   begin
 
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Calculate the Expected Output @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     Output1 := CalculateOutput(Input1);
     Output2 := CalculateOutput(Input2);
     Output3 := CalculateOutput(Input3);
+    Output4 := CalculateOutput(Input4);
 
     i := 0;
     while i <= 3 loop
-      assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output2(i)) severity note;
+      assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output1(i)) severity note;
 
       i := i + 1;
     end loop;
@@ -168,21 +180,39 @@ begin
     Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
 
     -- Test 1b: Memory Loading. Regular operation.
-    Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input4, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
 
     report "Test 2ab starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 2ab : Calculation. Abrupt OutputReady deassertion and Reset.
-    Test2ab(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
-
-    -- Test 0 : Resetting the system
-    Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
+    -- Test 2ab : Calculation. Regular operation.
+    Test2ab(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output4, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
 
     -- Test 1b: Memory Loading. Regular operation.
     Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input2, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
 
     report "Test 2ba starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 2ba : Calculation. Abrupt OutputReady deassertion and Reset.
+    -- Test 2ba : Calculation. Overflow detection test.
     Test2ba(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output2, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    -- Test 1b: Memory Loading. Regular operation.
+    Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input3, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    report "Test 2bb starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 2bb : Calculation. Underflow test.
+    Test2bb(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output3, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    report "Test 3a is starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 3a : Abrupt Reset assertion during Memory loading phase.
+    Test3a(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input3, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    -- Test 1b: Memory Loading. Regular operation.
+    Test1b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Input1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    report "Test 3b is starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
+    -- Test 3b: Abrupt Reset assertion during Calculation phase.
+    Test3b(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, DataOut, Output1, Reset, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+
+    -- Test 0 : Resetting the system
+    Test0(ClockCount, OutputValid, InputReady, ErrorCheck2, TotalClockCount, Reset, NewTestCase, InputValid, OutputReady, Pass);
     -- --------------------------------------------------
 
     -- PrufungsSalat(Output1);
