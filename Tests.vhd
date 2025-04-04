@@ -150,8 +150,44 @@ package Tests is
     variable Pass      : out boolean
   );
 
-  -- Test 3b: Abrupt Reset assertion during Calculation phase.
+  -- Test 3b: Abrupt Reset assertion during Run state phase.
   procedure Test3b(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 3c: Abrupt Reset assertion during Done state.
+  procedure Test3c(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 3d: Abrupt Reset assertion during Flush state.
+  procedure Test3d(
     signal ClockCount      : in integer;
     signal OutputValid     : in std_logic;
     signal InputReady      : in std_logic;
@@ -823,7 +859,7 @@ package body Tests is
   --------------------------------------------------------------------
   -- Test 3 : Abrupt Reset assertion during different phases.
   --------------------------------------------------------------------
-  -- Test 3a : Abrupt Reset assertion during Memory loading phase.
+  -- Test 3a : Abrupt Reset assertion during memory loading phase.
   --------------------------------------------------------------------
   procedure Test3a(
     signal ClockCount      : in integer;
@@ -934,7 +970,7 @@ package body Tests is
   end procedure Test3a;
 
   --------------------------------------------------------------------
-  -- Test 3b: Abrupt Reset assertion during Calculation phase.
+  -- Test 3b: Abrupt Reset assertion during Run state.
   --------------------------------------------------------------------
   procedure Test3b(
     signal ClockCount      : in integer;
@@ -1048,6 +1084,238 @@ package body Tests is
     end if;
 
   end procedure Test3b;
+
+  --------------------------------------------------------------------
+  -- Test 3c: Abrupt Reset assertion during Done state.
+  --------------------------------------------------------------------
+  procedure Test3c(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean                       := true;
+    variable i, k, InputValue                : integer                       := 0;
+    variable TempDataIn                      : signed ((Width - 1) downto 0) := (others => '0');
+    variable TempOutputReady, TempInputValid : std_logic                     := '0';
+  begin
+
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
+    TempPass := true;
+
+    InputValid  <= '1';
+    OutputReady <= '1';
+    TempOutputReady := '1';
+    TempInputValid  := '0';
+
+    k := 1;
+
+    i := 0;
+    while i < Size loop
+
+      -- Deassert InputValid pseudorandomly.
+      if (k mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+
+      -- Only progress with the test when OutputReady and OutputValid are high.
+      if ((TempOutputReady = '1') and (OutputValid = '1')) then
+        -- When OutputValid goes high, the correct Data must be output.
+
+        if (DataOut /= Output1(i)) then
+          report "Incorrect DataOut at position " & integer'image(i) & " : " & integer'image(to_integer(DataOut)) & ". Expected : " & integer'image(Output1(i))severity error;
+          TempPass := false;
+        elsif (ClockCount /= 6 + (i * 7)) then
+          report "DataOut was not ready at the right time. ClockCount = " & integer'image(ClockCount) & " instead of " & integer'image(6 + i * 7) severity error;
+        else
+          report "Output = " & integer'image(to_integer(DataOut)) severity note;
+        end if;
+        i := i + 1;
+      end if;
+
+      InputValid  <= TempInputValid;
+      OutputReady <= TempOutputReady;
+
+      wait until (ClockCount = k);
+
+      -- InputReady must remain low throughout the loading stage.
+      if ((InputReady /= '0') and (ClockCount /= 28)) then
+        report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+      -- ErrorCheck must remain low in this test.
+      if (ErrorCheck2 /= "00") then
+        report "ErrorCheck2 got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      if (ClockCount = 12) then
+
+        Reset <= '1';
+        wait until (ClockCount = k + 1);
+        Reset <= '0';
+
+        if (OutputValid /= '0') then
+          report "OutputValid does not reset properly. Test0. Clock : " & integer'image(TotalClockCount) severity error;
+          TempPass := false;
+        end if;
+
+        if (InputReady /= '0') then
+          report "InputReady does not reset properly. Test0. Clock: " & integer'image(TotalClockCount) severity error;
+          TempPass := false;
+        end if;
+
+        if (ErrorCheck2 /= "00") then
+          report "ErrorCheck2 does not reset properly. Test0. Clock: " & integer'image(TotalClockCount) severity error;
+          TempPass := false;
+        end if;
+
+        exit;
+      end if;
+
+      k := k + 1;
+    end loop;
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 3c : PASS" severity warning;
+    else
+      report "Test 3c : FAIL" severity error;
+    end if;
+
+  end procedure Test3c;
+
+  --------------------------------------------------------------------
+  -- Test 3d: Abrupt Reset assertion during Flush state.
+  --------------------------------------------------------------------
+  procedure Test3d(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck2     : in std_logic_vector(1 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut         : in signed (((Width * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset       : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((Width - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean                       := true;
+    variable i, k, InputValue                : integer                       := 0;
+    variable TempDataIn                      : signed ((Width - 1) downto 0) := (others => '0');
+    variable TempOutputReady, TempInputValid : std_logic                     := '0';
+  begin
+
+    NewTestCase <= '1';
+    wait for 10ns;
+    NewTestCase <= '0';
+
+    TempPass := true;
+
+    InputValid  <= '1';
+    OutputReady <= '1';
+    TempOutputReady := '1';
+    TempInputValid  := '0';
+
+    k := 1;
+
+    i := 0;
+    while i < Size loop
+
+      -- Deassert InputValid pseudorandomly.
+      if (k mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+
+      -- Only progress with the test when OutputReady and OutputValid are high.
+      if ((TempOutputReady = '1') and (OutputValid = '1')) then
+        -- When OutputValid goes high, the correct Data must be output.
+
+        if (DataOut /= Output1(i)) then
+          report "Incorrect DataOut at position " & integer'image(i) & " : " & integer'image(to_integer(DataOut)) & ". Expected : " & integer'image(Output1(i))severity error;
+          TempPass := false;
+        elsif (ClockCount /= 6 + (i * 7)) then
+          report "DataOut was not ready at the right time. ClockCount = " & integer'image(ClockCount) & " instead of " & integer'image(6 + i * 7) severity error;
+        else
+          report "Output = " & integer'image(to_integer(DataOut)) severity note;
+        end if;
+        i := i + 1;
+      end if;
+
+      InputValid  <= TempInputValid;
+      OutputReady <= TempOutputReady;
+
+      wait until (ClockCount = k);
+
+      -- InputReady must remain low throughout the loading stage.
+      if ((InputReady /= '0') and (ClockCount /= 28)) then
+        report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+      -- ErrorCheck must remain low in this test.
+      if (ErrorCheck2 /= "00") then
+        report "ErrorCheck2 got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      if (ClockCount = 13) then
+
+        Reset <= '1';
+        wait until (ClockCount = k + 1);
+        Reset <= '0';
+
+        if (OutputValid /= '0') then
+          report "OutputValid does not reset properly. Test0. Clock : " & integer'image(TotalClockCount) severity error;
+          TempPass := false;
+        end if;
+
+        if (InputReady /= '0') then
+          report "InputReady does not reset properly. Test0. Clock: " & integer'image(TotalClockCount) severity error;
+          TempPass := false;
+        end if;
+
+        if (ErrorCheck2 /= "00") then
+          report "ErrorCheck2 does not reset properly. Test0. Clock: " & integer'image(TotalClockCount) severity error;
+          TempPass := false;
+        end if;
+
+        exit;
+      end if;
+
+      k := k + 1;
+    end loop;
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 3c : PASS" severity warning;
+    else
+      report "Test 3c : FAIL" severity error;
+    end if;
+
+  end procedure Test3d;
 
   -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   -- @@@@@@@@@@@@@@@@@@@@@ FOR TESTING PURPOSES @@@@@@@@@@@@@@@@@@@@
