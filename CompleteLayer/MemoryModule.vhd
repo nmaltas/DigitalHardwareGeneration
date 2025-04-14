@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 entity MemoryModule is
 
   generic (
-    DataWidth : integer := 16;
+    DataWidth : integer := 8;
     MemSize   : integer := 20);
 
   port (

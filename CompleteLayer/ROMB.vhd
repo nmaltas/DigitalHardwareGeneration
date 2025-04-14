@@ -16,7 +16,7 @@ entity ROMB is
     Enable : in std_logic;
     Clk    : in std_logic;
 
-    -- Each row/value neds a separate output port.
+    -- Each Row/value needs a separate output port.
     -- Number of output ports has to be hardcoded. HLS will have to deal with this.
     DataOut0 : out signed ((DataWidth - 1) downto 0);
     DataOut1 : out signed ((DataWidth - 1) downto 0);

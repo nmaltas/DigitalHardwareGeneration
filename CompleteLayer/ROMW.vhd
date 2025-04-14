@@ -27,7 +27,7 @@ entity ROMW is
     Enable  : in std_logic;
     Clk     : in std_logic;
 
-    -- One output port is needed for each row in order to support full parallelization.
+    -- One output port is needed for each Row in order to support full parallelization.
     -- Number of output ports has to be hardcoded. HLS will have to deal with this.
     DataOut0 : out signed ((DataWidth - 1) downto 0);
     DataOut1 : out signed ((DataWidth - 1) downto 0);

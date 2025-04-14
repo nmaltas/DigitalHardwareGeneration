@@ -5,9 +5,9 @@ use ieee.numeric_std.all;
 entity ControlModule is
 
   generic (
-    Width   : integer := 8;
-    Rows    : integer := 3
-    Columns : integer := 4;
+    DataWidth : integer := 16;
+    Rows      : integer := 3;
+    Columns   : integer := 4
   );
 
   port (
@@ -17,9 +17,9 @@ entity ControlModule is
     Reset       : in std_logic;
 
     AddressW    : out integer range 0 to (Columns - 1);
-    AddressX    : out integer range 0 to (Size - 1);
+    AddressX    : out integer range 0 to (Columns - 1);
     REW         : out std_logic;
-    REB         : out std_logic;
+    REB         : out std_logic; -- Only to be set high at the transition of Load to Run.
     REX         : out std_logic;
     WEX         : out std_logic;
     Clear       : out std_logic;
@@ -32,24 +32,26 @@ end ControlModule;
 architecture ControlModule1 of ControlModule is
 
   type StateName is (Standby, Load, Run, Done);
-  signal CurrentState : StateName;
-
-  signal RowCounter   : integer range 0 to (Rows - 1);
-  signal OutputValid1 : std_logic;
-  signal InputReady1  : std_logic;
+  signal CurrentState  : StateName;
+  signal ColumnCounter : integer range 0 to (Columns - 1);
+  signal OutputValid1  : std_logic;
+  signal InputReady1   : std_logic;
 
 begin
   -------------------------------------------------------------------------------------
   -------------------------Combinational Logic-----------------------------------------
   OutputValid <= OutputValid1;
   InputReady  <= InputReady1;
-  AddressM    <= ColumnCounter;
-  AddressX    <= RowCounter;
+  AddressW    <= ColumnCounter;
+  AddressX    <= ColumnCounter;
 
   WEX <= '1' when (InputValid = '1' and CurrentState = Load) else
-    '0';
+    '0'; -- Only goes high during Load state and ONLY when there is valid input.
+  REW <= '1' when (CurrentState = Run) else
+    '0'; -- Stays high for the entirety of Run state
+  REX <= '1' when (CurrentState = Run) else
+    '0'; -- Stays high for the entirety of Run state
 
-  -- QQQQQQQQQQQQQQQQQQQQQQQQQQQQ
   -------------------------------------------------------------------------------------
   -------------------------------------------------------------------------------------
 
@@ -62,7 +64,7 @@ begin
       Hold          <= '0';
       OutputValid1  <= '0';
       InputReady1   <= '0';
-      RowCounter    <= 0;
+      REB           <= '0';
       ColumnCounter <= 0;
 
       CurrentState <= Standby;
@@ -78,20 +80,19 @@ begin
           Hold          <= '0';
           OutputValid1  <= '0';
           InputReady1   <= '1';
+          REB           <= '0';
           ColumnCounter <= 0;
-          RowCounter    <= 0;
 
           if (InputValid = '0') then
             CurrentState <= Standby;
 
           else
-            CurrentState <= LoadM;
-
+            CurrentState <= Load;
           end if;
           -----------------------------------------------------------------------
 
-          -------------------------LoadM State------------------------------------
-        when LoadM =>
+          -------------------------Load State------------------------------------
+        when Load =>
 
           Hold         <= '0';
           Clear        <= '1';
@@ -99,85 +100,18 @@ begin
           InputReady1  <= '1';
 
           if (InputValid = '0') then -- Wait for valid input
-            ColumnCounter <= ColumnCounter;
-            RowCounter    <= RowCounter;
-
-            CurrentState <= CurrentState;
-
-          elsif (ColumnCounter < (Size - 1)) then -- Increment ColumnCounter
-            ColumnCounter <= ColumnCounter + 1;
-            RowCounter    <= RowCounter;
-
-            CurrentState <= CurrentState;
-
-          elsif (RowCounter < (Size - 1)) then -- Increment RowCounter
-            ColumnCounter <= 0;
-            RowCounter    <= RowCounter + 1;
-
-            CurrentState <= CurrentState;
-
-          else -- When done, break out and go to LoadB state
-            ColumnCounter <= 0;
-            RowCounter    <= 0;
-
-            CurrentState <= LoadB;
-
-          end if;
-          -----------------------------------------------------------------------
-
-          -------------------------LoadB State------------------------------------
-        when LoadB =>
-
-          Clear         <= '1';
-          Hold          <= '0';
-          OutputValid1  <= '0';
-          ColumnCounter <= 0;
-          InputReady1   <= '1';
-
-          if (InputValid = '0') then -- Wait for valid input
-            RowCounter <= RowCounter;
-
-            CurrentState <= CurrentState;
-
-          elsif (RowCounter < (Size - 1)) then -- Increment RowCounter
-            RowCounter <= RowCounter + 1;
-
-            CurrentState <= CurrentState;
-
-          else -- When done, break out and go to LoadX state
-            RowCounter <= 0;
-
-            CurrentState <= LoadX;
-
-          end if;
-          -----------------------------------------------------------------------
-
-          -------------------------LoadX State------------------------------------
-        when LoadX =>
-
-          Clear        <= '1';
-          Hold         <= '0';
-          OutputValid1 <= '0';
-          RowCounter   <= 0;
-
-          if (InputValid = '0') then -- Wait for valid input
-            InputReady1   <= '1';
+            REB           <= '0';
             ColumnCounter <= ColumnCounter;
 
-            CurrentState <= CurrentState;
-
-          elsif (ColumnCounter < (Size - 1)) then -- Increment RowCounter
-            InputReady1   <= '1';
+          elsif (ColumnCounter < (Columns - 1)) then -- Increment ColumnCounter
+            REB           <= '0';
             ColumnCounter <= ColumnCounter + 1;
 
-            CurrentState <= CurrentState;
-
-          else
-            InputReady1   <= '0';
+          else -- When done, break out and go to Run state
+            REB           <= '1';
             ColumnCounter <= 0;
 
-            CurrentState <= Flush;
-
+            CurrentState <= Run;
           end if;
           -----------------------------------------------------------------------
 
@@ -187,17 +121,15 @@ begin
           Clear        <= '0';
           Hold         <= '0';
           InputReady1  <= '0';
-          OutputValid1 <= '0';
-          RowCounter   <= RowCounter;
+          OutputValid1 <= '0'; -- Maybe this can be raised when changing state to Done to improve throughput? Will check later
+          REB          <= '0';
 
-          if (ColumnCounter < Size) then -- Normal operation. The MAC Unit is calculating.
+          if (ColumnCounter < Columns) then -- Regular operation. The MAC Unit is calculating.
             Hold          <= '0';
             ColumnCounter <= ColumnCounter + 1;
 
-            CurrentState <= Run;
-
-          else -- The row calculation is complete. System moving to Done state. One more cycle is necessary for the data to be available.
-            ColumnCounter <= (Size - 1);
+          else -- The calculation is complete. System moving to Done state. One more cycle is necessary for the data to be available.
+            ColumnCounter <= 0;
 
             CurrentState <= Done;
 
@@ -208,70 +140,33 @@ begin
         when Done =>
 
           InputReady1 <= '0';
+          REB         <= '0';
 
           if (OutputReady = '0') then -- Wait until the data can be output.
-            Hold          <= '1';
-            Clear         <= '0';
-            OutputValid1  <= '1';
-            RowCounter    <= RowCounter;
-            ColumnCounter <= ColumnCounter;
-
-            CurrentState <= Done;
+            Hold         <= '1';
+            Clear        <= '0';
+            OutputValid1 <= '1'; -- Maybe this can be raised when changing state to Done to improve throughput? Will check later
 
           else
-            ColumnCounter <= 0;
 
-            if (OutputValid1 = '1') then
-              OutputValid1 <= '0';
-            else
-              OutputValid1 <= '1';
-            end if;
+            OutputValid1 <= '0';
 
-            -- if (RowCounter < Size) then -- When ready, flush the system and start over with the next row.
-            Hold       <= '0';
-            Clear      <= '1';
-            RowCounter <= RowCounter + 1;
+            Hold         <= '0';
+            Clear        <= '1';
+            CurrentState <= Standby;
 
-            CurrentState <= Flush;
-
-            -- else -- If this is the last Done state, go back to Standby.
-            --   Hold       <= '0';
-            --   Clear      <= '1';
-            --   RowCounter <= 0;
-
-            --   CurrentState <= Standby;
-
-            -- end if;
           end if;
           -----------------------------------------------------------------------
-
-          -------------------------Flush State-----------------------------------
-        when Flush =>
-
-          InputReady1   <= '0';
-          ColumnCounter <= ColumnCounter;
-          OutputValid1  <= '0';
-          Hold          <= '0';
-          Clear         <= '1';
-
-          if (RowCounter < Size) then
-            RowCounter   <= RowCounter;
-            CurrentState <= Run;
-          else
-            RowCounter   <= 0;
-            CurrentState <= Standby;
-          end if;
-          ----------------------------------------------------------------------
 
           -------------------------Others---------------------------------------
         when others =>
 
-          Clear         <= '0';
+          Clear         <= '1';
           Hold          <= '0';
           OutputValid1  <= '0';
           InputReady1   <= '0';
-          RowCounter    <= 0;
-          ColumnCounter <= 1;
+          REB           <= '0';
+          ColumnCounter <= 0;
 
           CurrentState <= Standby;
           ----------------------------------------------------------------------
