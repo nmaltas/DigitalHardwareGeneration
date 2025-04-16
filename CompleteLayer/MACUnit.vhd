@@ -9,24 +9,24 @@ entity MACUnit is
   );
 
   port (
-    DataIn1 : in signed ((DataWidth - 1) downto 0);
-    DataIn2 : in signed ((DataWidth - 1) downto 0);
-    DataIn3 : in signed ((DataWidth - 1) downto 0);
+    DataIn1 : in signed(DataWidth - 1 downto 0);
+    DataIn2 : in signed(DataWidth - 1 downto 0);
+    DataIn3 : in signed(DataWidth - 1 downto 0);
     Hold    : in std_logic;
     Clk     : in std_logic;
     Reset   : in std_logic;
 
-    DataOut     : out signed ((DataWidth - 1) downto 0);
+    DataOut     : out signed(((DataWidth * 2) - 1) downto 0);
     ErrorCheck2 : out std_logic_vector (1 downto 0)
   );
 end MACUnit;
 
 architecture MACUnit1 of MACUnit is
 
-  signal Product1    : signed((DataWidth - 1) downto 0);
-  signal Product2    : signed((DataWidth - 1) downto 0);
-  signal Sum         : signed((DataWidth - 1) downto 0);
-  signal SumFeedback : signed((DataWidth - 1) downto 0);
+  signal Product1    : signed(((DataWidth * 2) - 1) downto 0);
+  signal Product2    : signed(((DataWidth * 2) - 1) downto 0);
+  signal Sum         : signed(((DataWidth * 2) - 1) downto 0);
+  signal SumFeedback : signed(((DataWidth * 2) - 1) downto 0);
   signal MSB1        : std_logic;
   signal MSB2        : std_logic;
   signal MSB3        : std_logic;
@@ -60,7 +60,7 @@ begin
     if (Reset = '1') then
       Product2 <= (others => '0');
 
-      SumFeedback <= DataIn3;
+      SumFeedback <= (((DataWidth * 2) - 1) downto DataWidth => DataIn3(DataWidth - 1)) & DataIn3;
       ErrorCheck1 <= "00";
 
     elsif ((Clk'event) and (Clk = '1')) then

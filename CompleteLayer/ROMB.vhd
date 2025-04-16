@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 entity ROMB is
 
   generic (
-    DataWidth : integer := 16;
+    DataWidth : integer := 8;
 
     -- Memory slots have to be hardcodded. HLS will deal with this.
     Slot0 : integer := 0;

@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 entity ControlModule is
 
   generic (
-    DataWidth : integer := 16;
+    DataWidth : integer := 8;
     Rows      : integer := 3;
     Columns   : integer := 4
   );

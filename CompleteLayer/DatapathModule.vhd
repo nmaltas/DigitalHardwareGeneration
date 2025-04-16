@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 entity DatapathModule is
 
   generic (
-    DataWidth : integer := 16;
+    DataWidth : integer := 8;
     Rows      : integer := 3;
     Columns   : integer := 4
   );
@@ -22,9 +22,9 @@ entity DatapathModule is
     Reset    : in std_logic;
     Clk      : in std_logic;
 
-    DataOut0 : out signed((DataWidth - 1) downto 0);
-    DataOut1 : out signed((DataWidth - 1) downto 0);
-    DataOut2 : out signed((DataWidth - 1) downto 0);
+    DataOut0 : out signed(((DataWidth * 2) - 1) downto 0);
+    DataOut1 : out signed(((DataWidth * 2) - 1) downto 0);
+    DataOut2 : out signed(((DataWidth * 2) - 1) downto 0);
 
     ErrorCheck20 : out std_logic_vector (1 downto 0);
     ErrorCheck21 : out std_logic_vector (1 downto 0);
@@ -36,7 +36,7 @@ architecture DatapathModule1 of DatapathModule is
 
   component MACUnit is
     generic (
-      DataWidth : integer := 16
+      DataWidth : integer := 8
     );
 
     port (
@@ -47,14 +47,14 @@ architecture DatapathModule1 of DatapathModule is
       Clk     : in std_logic;
       Reset   : in std_logic;
 
-      DataOut     : out signed((DataWidth - 1) downto 0);
+      DataOut     : out signed(((DataWidth * 2) - 1) downto 0);
       ErrorCheck2 : out std_logic_vector (1 downto 0)
     );
   end component;
 
   component MemoryModule is
     generic (
-      DataWidth : integer := 16;
+      DataWidth : integer := 8;
       MemSize   : integer := 20);
 
     port (
@@ -70,7 +70,7 @@ architecture DatapathModule1 of DatapathModule is
 
   component ROMW is
     generic (
-      DataWidth : integer := 16;
+      DataWidth : integer := 8;
       Columns   : integer := 4;
 
       -- These memory slots need to be hardcoded. HLS will have to deal with this.
@@ -102,7 +102,7 @@ architecture DatapathModule1 of DatapathModule is
 
   component ROMB is
     generic (
-      DataWidth : integer := 16;
+      DataWidth : integer := 8;
 
       -- Memory slots have to be hardcodded. HLS will deal with this.
       Slot0 : integer := 0;
@@ -136,7 +136,19 @@ begin
   MemoryW : ROMW
   generic map(
     DataWidth => DataWidth,
-    Columns   => Columns
+    Columns   => Columns,
+    Slot00    => 113,
+    Slot01    => 125,
+    Slot02    => 114,
+    Slot03    => 121,
+    Slot10    => - 116,
+    Slot11    => 121,
+    Slot12    => - 113,
+    Slot13    => 125,
+    Slot20    => 111,
+    Slot21    => 113,
+    Slot22    => 86,
+    Slot23    => 98
   )
   port map
   (
@@ -150,7 +162,10 @@ begin
 
   MemoryB : ROMB
   generic map(
-    DataWidth => DataWidth
+    DataWidth => DataWidth,
+    Slot0     => 40,
+    Slot1     => - 23,
+    Slot2     => - 56
   )
   port map
   (

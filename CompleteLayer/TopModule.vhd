@@ -20,9 +20,9 @@ entity TopModule is
     OutputValid : out std_logic;
     InputReady  : out std_logic;
 
-    DataOut0 : out signed ((DataWidth - 1) downto 0);
-    DataOut1 : out signed ((DataWidth - 1) downto 0);
-    DataOut2 : out signed ((DataWidth - 1) downto 0);
+    DataOut0 : out signed(((DataWidth * 2) - 1) downto 0);
+    DataOut1 : out signed(((DataWidth * 2) - 1) downto 0);
+    DataOut2 : out signed(((DataWidth * 2) - 1) downto 0);
 
     ErrorCheck : out std_logic_vector (5 downto 0)
   );
@@ -32,7 +32,7 @@ architecture TopModule1 of TopModule is
 
   component ControlModule is
     generic (
-      DataWidth : integer := 16;
+      DataWidth : integer := 8;
       Rows      : integer := 3;
       Columns   : integer := 4
     );
@@ -58,7 +58,7 @@ architecture TopModule1 of TopModule is
 
   component DatapathModule is
     generic (
-      DataWidth : integer := 16;
+      DataWidth : integer := 8;
       Rows      : integer := 3;
       Columns   : integer := 4
     );
@@ -75,9 +75,9 @@ architecture TopModule1 of TopModule is
       Reset    : in std_logic;
       Clk      : in std_logic;
 
-      DataOut0 : out signed((DataWidth - 1) downto 0);
-      DataOut1 : out signed((DataWidth - 1) downto 0);
-      DataOut2 : out signed((DataWidth - 1) downto 0);
+      DataOut0 : out signed(((DataWidth * 2) - 1) downto 0);
+      DataOut1 : out signed(((DataWidth * 2) - 1) downto 0);
+      DataOut2 : out signed(((DataWidth * 2) - 1) downto 0);
 
       ErrorCheck20 : out std_logic_vector (1 downto 0);
       ErrorCheck21 : out std_logic_vector (1 downto 0);
