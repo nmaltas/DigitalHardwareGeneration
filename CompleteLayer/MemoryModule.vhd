@@ -42,8 +42,8 @@ begin
       else
         if (RE = '1') then
           -- Guard against invalid Address values.
-          if (Address <= MemSize) then
-            DataOut     <= Data(Address);
+          if (Address < MemSize) then
+            DataOut <= Data(Address);
           else
             DataOut <= (others => '1');
           end if;

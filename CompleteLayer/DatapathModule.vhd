@@ -19,7 +19,7 @@ entity DatapathModule is
     REX      : in std_logic;
     WEX      : in std_logic;
     Hold     : in std_logic;
-    Reset    : in std_logic;
+    Reset_L  : in std_logic;
     Clk      : in std_logic;
 
     DataOut0 : out signed(((DataWidth * 2) - 1) downto 0);
@@ -45,7 +45,7 @@ architecture DatapathModule1 of DatapathModule is
       DataIn3 : in signed(DataWidth - 1 downto 0);
       Hold    : in std_logic;
       Clk     : in std_logic;
-      Reset   : in std_logic;
+      Reset_L : in std_logic;
 
       DataOut     : out signed(((DataWidth * 2) - 1) downto 0);
       ErrorCheck2 : out std_logic_vector (1 downto 0)
@@ -137,18 +137,18 @@ begin
   generic map(
     DataWidth => DataWidth,
     Columns   => Columns,
-    Slot00    => 113,
-    Slot01    => 125,
-    Slot02    => 114,
-    Slot03    => 121,
-    Slot10    => - 116,
-    Slot11    => 121,
+    Slot00    => 116,
+    Slot01    => - 121,
+    Slot02    => 113,
+    Slot03    => - 125,
+    Slot10    => 94,
+    Slot11    => - 107,
     Slot12    => - 113,
-    Slot13    => 125,
-    Slot20    => 111,
-    Slot21    => 113,
-    Slot22    => 86,
-    Slot23    => 98
+    Slot13    => - 99,
+    Slot20    => - 116,
+    Slot21    => 121,
+    Slot22    => - 113,
+    Slot23    => 125
   )
   port map
   (
@@ -163,9 +163,9 @@ begin
   MemoryB : ROMB
   generic map(
     DataWidth => DataWidth,
-    Slot0     => 40,
-    Slot1     => - 23,
-    Slot2     => - 56
+    Slot0     => 101,
+    Slot1     => 83,
+    Slot2     => - 55
   )
   port map
   (
@@ -202,7 +202,7 @@ begin
     DataIn3     => DataInB0,
     Hold        => Hold,
     Clk         => Clk,
-    Reset       => Reset,
+    Reset_L     => Reset_L,
     DataOut     => DataOut0,
     ErrorCheck2 => ErrorCheck20
   );
@@ -218,7 +218,7 @@ begin
     DataIn3     => DataInB1,
     Hold        => Hold,
     Clk         => Clk,
-    Reset       => Reset,
+    Reset_L     => Reset_L,
     DataOut     => DataOut1,
     ErrorCheck2 => ErrorCheck21
   );
@@ -234,7 +234,7 @@ begin
     DataIn3     => DataInB2,
     Hold        => Hold,
     Clk         => Clk,
-    Reset       => Reset,
+    Reset_L     => Reset_L,
     DataOut     => DataOut2,
     ErrorCheck2 => ErrorCheck22
   );

@@ -14,7 +14,7 @@ entity ControlModule is
     InputValid  : in std_logic;
     OutputReady : in std_logic;
     Clk         : in std_logic;
-    Reset       : in std_logic;
+    Reset_L     : in std_logic;
 
     AddressW    : out integer range 0 to (Columns - 1);
     AddressX    : out integer range 0 to (Columns - 1);
@@ -22,7 +22,7 @@ entity ControlModule is
     REB         : out std_logic; -- Only to be set high at the transition of Load to Run.
     REX         : out std_logic;
     WEX         : out std_logic;
-    Clear       : out std_logic;
+    Clear_L     : out std_logic;
     Hold        : out std_logic;
     OutputValid : out std_logic;
     InputReady  : out std_logic
@@ -59,8 +59,8 @@ begin
   begin
 
     ----------------------------Asynchronous Reset--------------------------------------
-    if (Reset = '1') then
-      Clear         <= '1';
+    if (Reset_L = '0') then
+      Clear_L       <= '0';
       Hold          <= '0';
       OutputValid1  <= '0';
       InputReady1   <= '0';
@@ -76,7 +76,7 @@ begin
           ------------------------Standby State----------------------------------
         when Standby =>
 
-          Clear         <= '1';
+          Clear_L       <= '0';
           Hold          <= '0';
           OutputValid1  <= '0';
           InputReady1   <= '1';
@@ -95,9 +95,8 @@ begin
         when Load =>
 
           Hold         <= '0';
-          Clear        <= '1';
+          Clear_L      <= '0';
           OutputValid1 <= '0';
-          InputReady1  <= '1';
 
           if (InputValid = '0') then -- Wait for valid input
             REB           <= '0';
@@ -110,6 +109,7 @@ begin
           else -- When done, break out and go to Run state
             REB           <= '1';
             ColumnCounter <= 0;
+            InputReady1   <= '0';
 
             CurrentState <= Run;
           end if;
@@ -118,7 +118,7 @@ begin
           --------------------------Run State------------------------------------
         when Run =>
 
-          Clear        <= '0';
+          Clear_L      <= '1';
           Hold         <= '0';
           InputReady1  <= '0';
           OutputValid1 <= '0'; -- Maybe this can be raised when changing state to Done to improve throughput? Will check later
@@ -144,7 +144,7 @@ begin
 
           if (OutputReady = '0') then -- Wait until the data can be output.
             Hold         <= '1';
-            Clear        <= '0';
+            Clear_L      <= '1';
             OutputValid1 <= '1'; -- Maybe this can be raised when changing state to Done to improve throughput? Will check later
 
           else
@@ -152,7 +152,7 @@ begin
             OutputValid1 <= '0';
 
             Hold         <= '0';
-            Clear        <= '1';
+            Clear_L      <= '0';
             CurrentState <= Standby;
 
           end if;
@@ -161,7 +161,7 @@ begin
           -------------------------Others---------------------------------------
         when others =>
 
-          Clear         <= '1';
+          Clear_L       <= '0';
           Hold          <= '0';
           OutputValid1  <= '0';
           InputReady1   <= '0';

@@ -14,7 +14,7 @@ entity MACUnit is
     DataIn3 : in signed(DataWidth - 1 downto 0);
     Hold    : in std_logic;
     Clk     : in std_logic;
-    Reset   : in std_logic;
+    Reset_L : in std_logic;
 
     DataOut     : out signed(((DataWidth * 2) - 1) downto 0);
     ErrorCheck2 : out std_logic_vector (1 downto 0)
@@ -57,7 +57,7 @@ begin
   begin
 
     ----------------------------Synchronous Reset--------------------------------------
-    if (Reset = '1') then
+    if (Reset_L = '0') then
       Product2 <= (others => '0');
 
       SumFeedback <= (((DataWidth * 2) - 1) downto DataWidth => DataIn3(DataWidth - 1)) & DataIn3;

@@ -14,7 +14,7 @@ entity TopModule is
     DataIn      : in signed ((DataWidth - 1) downto 0);
     InputValid  : in std_logic;
     OutputReady : in std_logic;
-    Reset       : in std_logic;
+    Reset_L     : in std_logic;
     Clk         : in std_logic;
 
     OutputValid : out std_logic;
@@ -41,7 +41,7 @@ architecture TopModule1 of TopModule is
       InputValid  : in std_logic;
       OutputReady : in std_logic;
       Clk         : in std_logic;
-      Reset       : in std_logic;
+      Reset_L     : in std_logic;
 
       AddressW    : out integer range 0 to (Columns - 1);
       AddressX    : out integer range 0 to (Columns - 1);
@@ -49,7 +49,7 @@ architecture TopModule1 of TopModule is
       REB         : out std_logic;
       REX         : out std_logic;
       WEX         : out std_logic;
-      Clear       : out std_logic;
+      Clear_L     : out std_logic;
       Hold        : out std_logic;
       OutputValid : out std_logic;
       InputReady  : out std_logic
@@ -72,7 +72,7 @@ architecture TopModule1 of TopModule is
       REX      : in std_logic;
       WEX      : in std_logic;
       Hold     : in std_logic;
-      Reset    : in std_logic;
+      Reset_L  : in std_logic;
       Clk      : in std_logic;
 
       DataOut0 : out signed(((DataWidth * 2) - 1) downto 0);
@@ -92,8 +92,8 @@ architecture TopModule1 of TopModule is
   signal REX      : std_logic;
   signal WEX      : std_logic;
 
-  signal Hold  : std_logic;
-  signal Clear : std_logic;
+  signal Hold    : std_logic;
+  signal Clear_L : std_logic;
 
 begin
 
@@ -108,14 +108,14 @@ begin
     InputValid  => InputValid,
     OutputReady => OutputReady,
     Clk         => Clk,
-    Reset       => Reset,
+    Reset_L     => Reset_L,
     AddressW    => AddressW,
     AddressX    => AddressX,
     REW         => REW,
     REB         => REB,
     REX         => REX,
     WEX         => WEX,
-    Clear       => Clear,
+    Clear_L     => Clear_L,
     Hold        => Hold,
     OutputValid => OutputValid,
     InputReady  => InputReady
@@ -137,7 +137,7 @@ begin
     REX          => REX,
     WEX          => WEX,
     Hold         => Hold,
-    Reset        => Clear,
+    Reset_L      => Clear_L,
     Clk          => Clk,
     DataOut0     => DataOut0,
     DataOut1     => DataOut1,
