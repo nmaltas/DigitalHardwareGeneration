@@ -51,6 +51,7 @@ begin
     '0'; -- Stays high for the entirety of Run state
   REX <= '1' when (CurrentState = Run) else
     '0'; -- Stays high for the entirety of Run state
+  REB <= '1'; -- Can stay high for the entirety of the process. Only gets used when Clear is asserted.
 
   -------------------------------------------------------------------------------------
   -------------------------------------------------------------------------------------
@@ -64,7 +65,6 @@ begin
       Hold          <= '0';
       OutputValid1  <= '0';
       InputReady1   <= '0';
-      REB           <= '0';
       ColumnCounter <= 0;
 
       CurrentState <= Standby;
@@ -80,7 +80,6 @@ begin
           Hold          <= '0';
           OutputValid1  <= '0';
           InputReady1   <= '1';
-          REB           <= '0';
           ColumnCounter <= 0;
 
           if (InputValid = '0') then
@@ -94,20 +93,17 @@ begin
           -------------------------Load State------------------------------------
         when Load =>
 
-          Hold         <= '0';
           Clear_L      <= '0';
+          Hold         <= '0';
           OutputValid1 <= '0';
 
           if (InputValid = '0') then -- Wait for valid input
-            REB           <= '0';
             ColumnCounter <= ColumnCounter;
 
-          elsif (ColumnCounter < (Columns - 1)) then -- Increment ColumnCounter
-            REB           <= '0';
+          elsif (ColumnCounter < (Columns - 1)) then -- This is necessary because MemoryX can not write and read at the same time.
             ColumnCounter <= ColumnCounter + 1;
 
           else -- When done, break out and go to Run state
-            REB           <= '1';
             ColumnCounter <= 0;
             InputReady1   <= '0';
 
@@ -118,18 +114,23 @@ begin
           --------------------------Run State------------------------------------
         when Run =>
 
-          Clear_L      <= '1';
-          Hold         <= '0';
-          InputReady1  <= '0';
-          OutputValid1 <= '0'; -- Maybe this can be raised when changing state to Done to improve throughput? Will check later
-          REB          <= '0';
+          Clear_L     <= '1';
+          InputReady1 <= '0';
 
           if (ColumnCounter < Columns) then -- Regular operation. The MAC Unit is calculating.
             Hold          <= '0';
             ColumnCounter <= ColumnCounter + 1;
+            OutputValid1  <= '0';
+
+          elsif (ColumnCounter = Columns) then -- Needs one more cycle because of pipelining.
+            Hold          <= '0';
+            ColumnCounter <= ColumnCounter + 1;
+            OutputValid1  <= '0';
 
           else -- The calculation is complete. System moving to Done state. One more cycle is necessary for the data to be available.
             ColumnCounter <= 0;
+            OutputValid1  <= '1';
+            Hold          <= '1';
 
             CurrentState <= Done;
 
@@ -140,7 +141,6 @@ begin
         when Done =>
 
           InputReady1 <= '0';
-          REB         <= '0';
 
           if (OutputReady = '0') then -- Wait until the data can be output.
             Hold         <= '1';
@@ -165,7 +165,6 @@ begin
           Hold          <= '0';
           OutputValid1  <= '0';
           InputReady1   <= '0';
-          REB           <= '0';
           ColumnCounter <= 0;
 
           CurrentState <= Standby;

@@ -64,6 +64,43 @@ package Tests3x4 is
     variable Pass      : out boolean
   );
 
+  -- Test 2aa : Calculation. Abrupt OutputReady deassertion.
+  procedure Test2aa_3x4(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck      : in std_logic_vector(5 downto 0);
+    signal TotalClockCount : in integer;
+    variable Output1       : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 2ab: Calculation. Regular operation.
+  procedure Test2ab_3x4(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck      : in std_logic_vector(5 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut0        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut1        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut2        : in signed (((DataWidth * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal ResetL      : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
 end package Tests3x4;
 --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -354,5 +391,240 @@ package body Tests3x4 is
   --------------------------------------------------------------------
 
   --------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- Test 2 : Calculation and output states.
+  --------------------------------------------------------------------
+  -- Test 2aa : Calculation. Abrupt OutputReady deassertion.
+  --------------------------------------------------------------------
+  procedure Test2aa_3x4(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck      : in std_logic_vector(5 downto 0);
+    signal TotalClockCount : in integer;
+    variable Output1       : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean   := true;
+    variable i, InputValue                   : integer   := 0;
+    variable TempOutputReady, TempInputValid : std_logic := '0';
+  begin
+    NewTestCase <= '1';
+    wait for 10 ns;
+    NewTestCase <= '0';
+
+    InputValid  <= '1';
+    OutputReady <= '1';
+
+    i := 0;
+    while i < (Columns + 2) loop
+
+      -- Deassert OutputReady pseudorandomly.
+      if (i mod 3 = 0) then
+        TempOutputReady := '0';
+      else
+        TempOutputReady := '1';
+      end if;
+      -- Deassert InputValid pseudorandomly.
+      if (i mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+      InputValid  <= TempInputValid;
+      OutputReady <= TempOutputReady;
+
+      wait until (ClockCount = i + 1);
+
+      -- InputReady must remain low throughout the calculation stage.
+      if (InputReady /= '0') then
+        report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- OutputValid must remain low throughout the calculation stage.
+      if (OutputValid /= '0') then
+        report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- ErrorCheck must remain low in this test.
+      if (ErrorCheck /= "000000") then
+        report "ErrorCheck got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+      i := i + 1;
+
+      if (i = 3) then
+        Reset_L <= '0';
+        exit;
+      end if;
+
+    end loop;
+
+    wait until (ClockCount = i + 1);
+
+    Reset_L <= '1';
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 2aa : PASS" severity warning;
+    else
+      report "Test 2aa : FAIL" severity error;
+    end if;
+
+  end procedure Test2aa_3x4;
+
+  --------------------------------------------------------------------
+  -- Test 2ab : Calculation. Regular operation.
+  --------------------------------------------------------------------
+  procedure Test2ab_3x4(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck      : in std_logic_vector(5 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut0        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut1        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut2        : in signed (((DataWidth * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean                           := true;
+    variable i, k, InputValue                : integer                           := 0;
+    variable TempDataIn                      : signed ((DataWidth - 1) downto 0) := (others => '0');
+    variable TempOutputReady, TempInputValid : std_logic                         := '0';
+  begin
+    NewTestCase <= '1';
+    wait for 10 ns;
+    NewTestCase <= '0';
+
+    TempPass := true;
+
+    InputValid  <= '1';
+    OutputReady <= '0';
+    TempInputValid := '0';
+
+    i := 0;
+    while i < (Columns + 2) loop
+
+      -- Deassert InputValid pseudorandomly.
+      if (i mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+
+      InputValid <= TempInputValid;
+
+      wait until (ClockCount = i + 1);
+
+      -- InputReady must remain low throughout the loading stage.
+      if ((InputReady /= '0') and (ClockCount /= 28)) then
+        report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- OutputValid must remain low throughout the calculation stage.
+      if (OutputValid /= '0') then
+        report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- ErrorCheck must remain low in this test.
+      if (ErrorCheck /= "000000") then
+        report "ErrorCheck2 got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      i := i + 1;
+    end loop;
+
+    -- Wait for 5 clock cycles in Done state before asserting OutputReady.
+    k := 0;
+    while k < 5 loop
+
+      wait until (ClockCount = k + i + 2);
+
+      -- When OutputValid goes high, the correct Data must be output.
+      if (OutputValid = '1') then
+
+        if (DataOut0 /= Output1(0)) then
+          report "Incorrect DataOut at position 0: " & integer'image(to_integer(DataOut0)) & ". Expected : " & integer'image(Output1(0))severity error;
+          TempPass := false;
+        else
+          report "Output = " & integer'image(to_integer(DataOut0)) severity note;
+        end if;
+
+        if (DataOut1 /= Output1(1)) then
+          report "Incorrect DataOut at position 1: " & integer'image(to_integer(DataOut1)) & ". Expected : " & integer'image(Output1(1))severity error;
+          TempPass := false;
+        else
+          report "Output = " & integer'image(to_integer(DataOut1)) severity note;
+        end if;
+
+        if (DataOut2 /= Output1(2)) then
+          report "Incorrect DataOut at position 2: " & integer'image(to_integer(DataOut2)) & ". Expected : " & integer'image(Output1(2))severity error;
+          TempPass := false;
+        else
+          report "Output = " & integer'image(to_integer(DataOut2)) severity note;
+        end if;
+
+      end if;
+
+      k := k + 1;
+    end loop;
+
+    OutputReady <= '1';
+
+    if (OutputValid = '1') then
+
+      if (DataOut0 /= Output1(0)) then
+        report "Incorrect DataOut at position 0: " & integer'image(to_integer(DataOut0)) & ". Expected : " & integer'image(Output1(0))severity error;
+        TempPass := false;
+      else
+        report "Output = " & integer'image(to_integer(DataOut0)) severity note;
+      end if;
+
+      if (DataOut1 /= Output1(1)) then
+        report "Incorrect DataOut at position 1: " & integer'image(to_integer(DataOut1)) & ". Expected : " & integer'image(Output1(1))severity error;
+        TempPass := false;
+      else
+        report "Output = " & integer'image(to_integer(DataOut1)) severity note;
+      end if;
+
+      if (DataOut2 /= Output1(2)) then
+        report "Incorrect DataOut at position 2: " & integer'image(to_integer(DataOut2)) & ". Expected : " & integer'image(Output1(2))severity error;
+        TempPass := false;
+      else
+        report "Output = " & integer'image(to_integer(DataOut2)) severity note;
+      end if;
+
+    end if;
+
+    wait until (ClockCount = k + i + 3);
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 2ab : PASS" severity warning;
+    else
+      report "Test 2ab : FAIL" severity error;
+    end if;
+
+  end procedure Test2ab_3x4;
 
 end package body Tests3x4;
