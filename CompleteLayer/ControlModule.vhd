@@ -45,7 +45,7 @@ begin
   AddressW    <= ColumnCounter;
   AddressX    <= ColumnCounter;
 
-  WEX <= '1' when (InputValid = '1' and CurrentState = Load) else
+  WEX <= '1' when ((InputValid = '1' and InputReady1 = '1') and (CurrentState = Load or CurrentState = Standby)) else
     '0'; -- Only goes high during Load state and ONLY when there is valid input.
   REW <= '1' when (CurrentState = Run) else
     '0'; -- Stays high for the entirety of Run state
@@ -76,17 +76,18 @@ begin
           ------------------------Standby State----------------------------------
         when Standby =>
 
-          Clear_L       <= '0';
-          Hold          <= '0';
-          OutputValid1  <= '0';
-          InputReady1   <= '1';
-          ColumnCounter <= 0;
+          Clear_L      <= '0';
+          Hold         <= '0';
+          OutputValid1 <= '0';
+          InputReady1  <= '1';
 
           if (InputValid = '0') then
-            CurrentState <= Standby;
+            CurrentState  <= Standby;
+            ColumnCounter <= 0;
 
           else
-            CurrentState <= Load;
+            CurrentState  <= Load;
+            ColumnCounter <= ColumnCounter + 1;
           end if;
           -----------------------------------------------------------------------
 

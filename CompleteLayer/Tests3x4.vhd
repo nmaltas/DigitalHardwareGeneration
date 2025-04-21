@@ -93,7 +93,7 @@ package Tests3x4 is
     signal DataOut2        : in signed (((DataWidth * 2) - 1) downto 0);
     variable Output1       : in OutputTable;
 
-    signal ResetL      : out std_logic;
+    signal Reset_L     : out std_logic;
     signal NewTestCase : out std_logic;
     signal InputValid  : out std_logic;
     signal OutputReady : out std_logic;
@@ -336,18 +336,17 @@ package body Tests3x4 is
     TempOutputReady := '1';
     TempInputValid  := '1';
 
-    InputValid  <= TempInputValid;
-    OutputReady <= TempOutputReady;
-
     NewTestCase <= '1';
     wait for 10 ns;
     NewTestCase <= '0';
+
     -- Loading Memory
+    InputValid  <= TempInputValid;
+    OutputReady <= TempOutputReady;
 
     -- Cycle through the X elements.
     i := 0;
     while i < Columns loop
-
       -- Pass the variable values to drive the signals.
       TempDataIn := to_signed(Input1((Input1'length(1) - 1), i), DataIn'length);
       DataIn <= TempDataIn;
@@ -362,7 +361,7 @@ package body Tests3x4 is
       -- InputReady must remain high throughout the loading stage.
 
       if (InputReady /= '1') then
-        if (ClockCount = Columns) then
+        if (i = (Columns - 1)) then
           -- Everything is ok. Report no error.
         else
           report "InputReady went low prematurely. TotalClockCount: " & integer'image(TotalClockCount) severity error;
@@ -415,9 +414,6 @@ package body Tests3x4 is
     variable i, InputValue                   : integer   := 0;
     variable TempOutputReady, TempInputValid : std_logic := '0';
   begin
-    NewTestCase <= '1';
-    wait for 10 ns;
-    NewTestCase <= '0';
 
     InputValid  <= '1';
     OutputReady <= '1';
@@ -440,7 +436,7 @@ package body Tests3x4 is
       InputValid  <= TempInputValid;
       OutputReady <= TempOutputReady;
 
-      wait until (ClockCount = i + 1);
+      wait until (ClockCount = i + Columns + 1);
 
       -- InputReady must remain low throughout the calculation stage.
       if (InputReady /= '0') then
@@ -468,7 +464,7 @@ package body Tests3x4 is
 
     end loop;
 
-    wait until (ClockCount = i + 1);
+    wait until (ClockCount = i + Columns + 1);
 
     Reset_L <= '1';
 
@@ -508,9 +504,6 @@ package body Tests3x4 is
     variable TempDataIn                      : signed ((DataWidth - 1) downto 0) := (others => '0');
     variable TempOutputReady, TempInputValid : std_logic                         := '0';
   begin
-    NewTestCase <= '1';
-    wait for 10 ns;
-    NewTestCase <= '0';
 
     TempPass := true;
 
@@ -530,23 +523,23 @@ package body Tests3x4 is
 
       InputValid <= TempInputValid;
 
-      wait until (ClockCount = i + 1);
+      wait until (ClockCount = i + Columns + 1);
 
       -- InputReady must remain low throughout the loading stage.
-      if ((InputReady /= '0') and (ClockCount /= 28)) then
+      if (InputReady /= '0') then
         report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
         TempPass := false;
       end if;
 
       -- OutputValid must remain low throughout the calculation stage.
-      if (OutputValid /= '0') then
+      if (OutputValid /= '0' and (ClockCount < (Columns + 1))) then
         report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
         TempPass := false;
       end if;
 
       -- ErrorCheck must remain low in this test.
       if (ErrorCheck /= "000000") then
-        report "ErrorCheck2 got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        report "ErrorCheck got raised erratically. TotalClockCount: " & integer'image(TotalClockCount) severity error;
         TempPass := false;
       end if;
 
@@ -557,41 +550,9 @@ package body Tests3x4 is
     k := 0;
     while k < 5 loop
 
-      wait until (ClockCount = k + i + 2);
+      wait until (ClockCount = k + i + Columns + 1);
 
       -- When OutputValid goes high, the correct Data must be output.
-      if (OutputValid = '1') then
-
-        if (DataOut0 /= Output1(0)) then
-          report "Incorrect DataOut at position 0: " & integer'image(to_integer(DataOut0)) & ". Expected : " & integer'image(Output1(0))severity error;
-          TempPass := false;
-        else
-          report "Output = " & integer'image(to_integer(DataOut0)) severity note;
-        end if;
-
-        if (DataOut1 /= Output1(1)) then
-          report "Incorrect DataOut at position 1: " & integer'image(to_integer(DataOut1)) & ". Expected : " & integer'image(Output1(1))severity error;
-          TempPass := false;
-        else
-          report "Output = " & integer'image(to_integer(DataOut1)) severity note;
-        end if;
-
-        if (DataOut2 /= Output1(2)) then
-          report "Incorrect DataOut at position 2: " & integer'image(to_integer(DataOut2)) & ". Expected : " & integer'image(Output1(2))severity error;
-          TempPass := false;
-        else
-          report "Output = " & integer'image(to_integer(DataOut2)) severity note;
-        end if;
-
-      end if;
-
-      k := k + 1;
-    end loop;
-
-    OutputReady <= '1';
-
-    if (OutputValid = '1') then
-
       if (DataOut0 /= Output1(0)) then
         report "Incorrect DataOut at position 0: " & integer'image(to_integer(DataOut0)) & ". Expected : " & integer'image(Output1(0))severity error;
         TempPass := false;
@@ -613,9 +574,33 @@ package body Tests3x4 is
         report "Output = " & integer'image(to_integer(DataOut2)) severity note;
       end if;
 
+      k := k + 1;
+    end loop;
+
+    OutputReady <= '1';
+
+    if (DataOut0 /= Output1(0)) then
+      report "Incorrect DataOut at position 0: " & integer'image(to_integer(DataOut0)) & ". Expected : " & integer'image(Output1(0))severity error;
+      TempPass := false;
+    else
+      report "Output = " & integer'image(to_integer(DataOut0)) severity note;
     end if;
 
-    wait until (ClockCount = k + i + 3);
+    if (DataOut1 /= Output1(1)) then
+      report "Incorrect DataOut at position 1: " & integer'image(to_integer(DataOut1)) & ". Expected : " & integer'image(Output1(1))severity error;
+      TempPass := false;
+    else
+      report "Output = " & integer'image(to_integer(DataOut1)) severity note;
+    end if;
+
+    if (DataOut2 /= Output1(2)) then
+      report "Incorrect DataOut at position 2: " & integer'image(to_integer(DataOut2)) & ". Expected : " & integer'image(Output1(2))severity error;
+      TempPass := false;
+    else
+      report "Output = " & integer'image(to_integer(DataOut2)) severity note;
+    end if;
+
+    wait until (ClockCount = k + i + Columns + 1);
 
     Pass := TempPass;
 
