@@ -42,10 +42,13 @@ begin
   -------------------------Combinational Logic-----------------------------------------
   OutputValid <= OutputValid1;
   InputReady  <= InputReady1;
-  AddressW    <= ColumnCounter;
-  AddressX    <= ColumnCounter;
 
-  WEX <= '1' when ((InputValid = '1' and InputReady1 = '1') and (CurrentState = Load or CurrentState = Standby)) else
+  AddressW <= ColumnCounter when (ColumnCounter < Columns) else
+    0;
+  AddressX <= ColumnCounter when (ColumnCounter < Columns) else
+    0;
+
+  WEX <= '1' when (InputValid = '1' and InputReady1 = '1' and CurrentState = Load) else
     '0'; -- Only goes high during Load state and ONLY when there is valid input.
   REW <= '1' when (CurrentState = Run) else
     '0'; -- Stays high for the entirety of Run state
@@ -76,18 +79,19 @@ begin
           ------------------------Standby State----------------------------------
         when Standby =>
 
-          Clear_L      <= '0';
-          Hold         <= '0';
-          OutputValid1 <= '0';
-          InputReady1  <= '1';
+          Clear_L       <= '0';
+          Hold          <= '0';
+          OutputValid1  <= '0';
+          ColumnCounter <= 0;
 
           if (InputValid = '0') then
-            CurrentState  <= Standby;
-            ColumnCounter <= 0;
+            InputReady1 <= '0';
 
+            CurrentState <= Standby;
           else
-            CurrentState  <= Load;
-            ColumnCounter <= ColumnCounter + 1;
+            InputReady1 <= '1';
+
+            CurrentState <= Load;
           end if;
           -----------------------------------------------------------------------
 

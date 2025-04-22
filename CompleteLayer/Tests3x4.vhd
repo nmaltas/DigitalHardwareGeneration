@@ -101,6 +101,26 @@ package Tests3x4 is
     variable Pass      : out boolean
   );
 
+  -- Test 2ba : Calculation. Overflow detection test.
+  procedure Test2ba_3x4(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck      : in std_logic_vector(5 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut0        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut1        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut2        : in signed (((DataWidth * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
 end package Tests3x4;
 --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -244,19 +264,15 @@ package body Tests3x4 is
     while i < Columns loop
 
       -- Deassert InputValid pseudorandomly.
-      if (k mod 2 = 0) then
-        TempInputValid := '0';
-      elsif (k mod 3 = 0) then
-        TempInputValid := '1';
-      else
-        TempInputValid := TempInputValid;
-      end if;
+      TempInputValid := not TempInputValid;
 
       -- Deassert OutputReady pseudorandomly.
-      TempOutputReady := not TempOutputReady;
+      if (k mod 2 = 0) then
+        TempOutputReady := not TempOutputReady;
+      end if;
 
       -- Only progress with the test when InputValid is high.
-      if (TempInputValid = '1') then
+      if (TempInputValid = '1' and InputReady = '1') then
         TempDataIn := to_signed(Input1((Input1'length(1) - 1), i), DataIn'length);
         i          := i + 1;
       end if;
@@ -285,7 +301,7 @@ package body Tests3x4 is
       end if;
 
       -- Abrupt reset asserted here.
-      if (i = 1) then
+      if (i = 2) then
         Reset_L <= '0';
         exit;
       end if;
@@ -326,7 +342,7 @@ package body Tests3x4 is
     variable Pass      : out boolean) is
 
     variable TempPass                        : boolean                           := false;
-    variable i, InputValue                   : integer                           := 0;
+    variable i, k, InputValue                : integer                           := 0;
     variable TempOutputReady, TempInputValid : std_logic                         := '0';
     variable TempDataIn                      : signed ((DataWidth - 1) downto 0) := (others => '0');
   begin
@@ -343,15 +359,20 @@ package body Tests3x4 is
     -- Loading Memory
     InputValid  <= TempInputValid;
     OutputReady <= TempOutputReady;
+    DataIn      <= to_signed(0, DataIn'length);
+
+    k := 1;
+    wait until (ClockCount = k); -- This is necessary for the system to enter the Load State.
 
     -- Cycle through the X elements.
     i := 0;
     while i < Columns loop
+
       -- Pass the variable values to drive the signals.
       TempDataIn := to_signed(Input1((Input1'length(1) - 1), i), DataIn'length);
       DataIn <= TempDataIn;
 
-      wait until (ClockCount = i + 1);
+      wait until (ClockCount = k + 1);
 
       -- Output must remain low throughout the loading stage.
       if (OutputValid /= '0') then
@@ -360,13 +381,9 @@ package body Tests3x4 is
       end if;
       -- InputReady must remain high throughout the loading stage.
 
-      if (InputReady /= '1') then
-        if (i = (Columns - 1)) then
-          -- Everything is ok. Report no error.
-        else
-          report "InputReady went low prematurely. TotalClockCount: " & integer'image(TotalClockCount) severity error;
-          TempPass := false;
-        end if;
+      if (InputReady /= '1') and (i < (Columns - 2)) then
+        report "InputReady went low prematurely. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
       end if;
 
       -- ErrorCheck must not be affected in any way while loading.
@@ -375,7 +392,11 @@ package body Tests3x4 is
         TempPass := false;
       end if;
 
-      i := i + 1;
+      if (TempInputValid = '1') then
+        i := i + 1;
+      end if;
+
+      k := k + 1;
     end loop;
 
     Pass := TempPass;
@@ -611,5 +632,98 @@ package body Tests3x4 is
     end if;
 
   end procedure Test2ab_3x4;
+
+  --------------------------------------------------------------------
+  -- Test 2ba : Calculation. Overflow detection test.
+  --------------------------------------------------------------------
+  procedure Test2ba_3x4(
+    signal ClockCount      : in integer;
+    signal OutputValid     : in std_logic;
+    signal InputReady      : in std_logic;
+    signal ErrorCheck      : in std_logic_vector(5 downto 0);
+    signal TotalClockCount : in integer;
+    signal DataOut0        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut1        : in signed (((DataWidth * 2) - 1) downto 0);
+    signal DataOut2        : in signed (((DataWidth * 2) - 1) downto 0);
+    variable Output1       : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal NewTestCase : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean   := true;
+    variable i, k, InputValue                : integer   := 0;
+    variable TempOutputReady, TempInputValid : std_logic := '0';
+  begin
+
+    TempPass := true;
+
+    InputValid  <= '1';
+    OutputReady <= '0';
+    TempInputValid := '0';
+
+    i := 0;
+    while i < (Columns + 2) loop
+
+      -- Deassert InputValid pseudorandomly.
+      if (i mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+
+      InputValid <= TempInputValid;
+
+      wait until (ClockCount = i + Columns + 1);
+
+      -- InputReady must remain low throughout the loading stage.
+      if (InputReady /= '0') then
+        report "InputReady does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- OutputValid must remain low throughout the calculation stage.
+      if (OutputValid /= '0' and (ClockCount < (Columns + 1))) then
+        report "OutputValid does not remain low. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      i := i + 1;
+    end loop;
+
+    -- Wait for 5 clock cycles in Done state before asserting OutputReady.
+    k := 0;
+    while k < 5 loop
+
+      wait until (ClockCount = k + i + Columns + 1);
+
+      if (ErrorCheck = "000100") then
+        report "ErrorCheck got raised correctly because of an overfunder. TotalClockCount: " & integer'image(TotalClockCount) severity note;
+      else
+        report "ErrorCheck did not get raised properly. TotalClockCount: " & integer'image(TotalClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      k := k + 1;
+    end loop;
+
+    OutputReady <= '1';
+
+    wait until (ClockCount = k + i + Columns + 1);
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 2ba : PASS" severity warning;
+    else
+      report "Test 2ba : FAIL" severity error;
+    end if;
+
+    InputValid <= '0';
+
+  end procedure Test2ba_3x4;
 
 end package body Tests3x4;
