@@ -2,6 +2,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use ieee.numeric_std.all;
 use work.Tests3x4.all;
+use ieee.std_logic_misc.all;
 
 entity TB_TopModule_3x4 is
   generic (
@@ -39,10 +40,8 @@ architecture TB_TopModule1_3x4 of TB_TopModule_3x4 is
     );
   end component;
 
-  signal Clk             : std_logic               := '0';
-  signal ClockCount      : integer range 0 to 555  := 0;
-  signal TotalClockCount : integer range 0 to 1023 := 0;
-  signal NewTestCase     : std_logic               := '0';
+  signal Clk        : std_logic               := '0';
+  signal ClockCount : integer range 0 to 1023 := 0;
 
   signal InputValid  : std_logic := '0';
   signal OutputReady : std_logic := '0';
@@ -86,25 +85,20 @@ begin
   begin
     wait until Clk'event and Clk = '1';
     wait for 1 ns;
-    TotalClockCount <= TotalClockCount + 1;
-
-    if (NewTestCase = '1') then
-      ClockCount <= 0;
-    else
-      ClockCount <= ClockCount + 1;
-    end if;
+    ClockCount <= ClockCount + 1;
   end process;
 
   process
   begin
-    wait until TotalClockCount >= 500;
+    wait until ClockCount >= 500;
     assert FALSE report "Simulation completed successfully" severity failure;
   end process;
 
   ------------------------------ Simulation Stimuli ----------------------------
   process
-    variable i    : integer := 0;
-    variable Pass : boolean := true;
+    variable i         : integer                        := 0;
+    variable FinalPass : std_logic_vector (13 downto 0) := (others => '1');
+    variable Pass      : boolean                        := true;
 
     -- No overflow/underflow.
     variable Input1 : InputTable := (
@@ -142,6 +136,15 @@ begin
     (76, -99, 85, -91) -- This is X
     );
 
+    -- No overflow/underflow.
+    variable Input5 : InputTable := (
+    (116, -121, 113, -125), -- This is W
+    (94, -107, -113, -99),
+    (-116, 121, -113, 125),
+    (101, 83, -55, 0), -- This is B
+    (-55, -14, -5, 32) -- This is X
+    );
+
     -- Output without overflow/underflow.
     variable Output1 : OutputTable := (0, 0, 0);
     -- Output with overflowin position 2.
@@ -150,6 +153,8 @@ begin
     variable Output3 : OutputTable := (0, 0, 0);
     -- Output with overflow and underflow in positions 1 and 3 respectively
     variable Output4 : OutputTable := (0, 0, 0);
+    -- Output without overflow/underflow.
+    variable Output5 : OutputTable := (0, 0, 0);
   begin
 
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Calculate the Expected Output @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -167,35 +172,87 @@ begin
 
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-    report "Test 0 starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- -- Test 0 : Reset_Lting the system
-    Test0_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, Reset_L, NewTestCase, InputValid, OutputReady, Pass);
+    report "Test 0 starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- -- Test 0 : Resetting the system
+    Test0_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Reset_L, InputValid, OutputReady, Pass);
+    FinalPass(0) := Bool2Std(Pass);
 
-    report "Test 1a starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 1a : Memory Loading with abrupt InputValid deassertion and reset
-    Test1a_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, Input1, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    report "Test 1a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(1) := Bool2Std(Pass);
 
-    report "Test 1b starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 1b: Memory Loading. Regular operation.
-    Test1b_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, Input1, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    report "Test 1b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 1b : Calculation. Regular operation.
+    Test1b_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(2) := Bool2Std(Pass);
 
-    report "Test 2aa starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 2aa : Calculation. Abrupt OutputReady deassertion and Reset.
-    Test2aa_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, Output1, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input2, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(3) := Bool2Std(Pass);
 
-    -- Test 1b: Memory Loading. Regular operation.
-    Test1b_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, Input1, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    report "Test 2a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 2a : Calculation. Overflow detection test.
+    Test2a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output2, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(4) := Bool2Std(Pass);
 
-    report "Test 2ab starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 2ab : Calculation. Regular operation.
-    Test2ab_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, DataOut0, DataOut1, DataOut2, Output1, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input3, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(5) := Bool2Std(Pass);
 
-    -- Test 1b: Memory Loading. Regular operation.
-    Test1b_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, Input2, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    report "Test 2b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 2b : Calculation. Overflow detection test.
+    Test2b_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output3, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(6) := Bool2Std(Pass);
 
-    report "Test 2ba starting at clock cycle: " & integer'image(TotalClockCount + 1) severity warning;
-    -- Test 2ba : Calculation. Overflow detection test.
-    Test2ba_3x4(ClockCount, OutputValid, InputReady, ErrorCheck, TotalClockCount, DataOut0, DataOut1, DataOut2, Output2, Reset_L, NewTestCase, InputValid, OutputReady, DataIn, Pass);
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(7) := Bool2Std(Pass);
+
+    report "Test 2c starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 2c : Calculation. Simultaneous Overflow and Underflow detection test.
+    Test2c_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(8) := Bool2Std(Pass);
+
+    report "Test 3a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3a : Memory Loading with abrupt InputValid deassertion
+    Test3a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input5, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(9) := Bool2Std(Pass);
+
+    report "Test 3c starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3c : Abrupt reset assertion during Run state.
+    Test3c_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(10) := Bool2Std(Pass);
+
+    report "Test 3b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3b : Memory Loading with abrupt reset assertion
+    Test3b_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input5, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(11) := Bool2Std(Pass);
+
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(12) := Bool2Std(Pass);
+
+    report "Test 3d starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3d : Reset assertion during Done state
+    Test3d_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(13) := Bool2Std(Pass);
+
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    if (and_reduce(FinalPass) = '1') then
+      report "PASS" severity error;
+    else
+      report "FAIL" severity error;
+    end if;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
 
     wait;
   end process;
