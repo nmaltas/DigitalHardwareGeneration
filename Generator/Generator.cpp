@@ -13,6 +13,9 @@ void PrintTables(const Parameters &Specs);
 void GenerateROMB(const Parameters &Specs);
 //
 //
+void GenerateROMW(const Parameters &Specs);
+//
+//
 // MAIN
 int main()
 {
@@ -87,8 +90,7 @@ void PrintTables(const Parameters &Specs)
 }
 //
 //
-// Generating ROMB VHDL file
-
+// Generate ROMB VHDL file
 void GenerateROMB(const Parameters &Specs)
 {
     ofstream Output;
@@ -99,7 +101,8 @@ void GenerateROMB(const Parameters &Specs)
 entity ROMB is
 
   generic (
-    DataWidth : integer := 8;
+    DataWidth : integer := )VHDL"
+           << Specs.T << R"VHDL(;
 
     -- Memory slots have to be hardcodded. HLS will deal with this.
 )VHDL";
@@ -197,6 +200,30 @@ begin
   end process;
 
 end ROMB1;)VHDL";
+
+    Output.close();
+}
+//
+//
+// Generate ROMW VHDL file
+void GenerateROMW(const Parameters &Specs)
+{
+    ofstream Output;
+    Output.open("ROMB.vhd");
+
+    Output << Specs.Libraries;
+
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
+    Output << R"VHDL()VHDL";
 
     Output.close();
 }
