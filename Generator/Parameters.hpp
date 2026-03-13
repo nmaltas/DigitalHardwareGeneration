@@ -24,7 +24,7 @@ public:
 
     vector<int_fast32_t> XMatrix{-70, -17, -75, 3};
 
-    string Libraries = "library IEEE;\nuse IEEE.STD_LOGIC_1164.all;\nuse ieee.numeric_std.all;";
+    string Libraries = "library IEEE;\nuse IEEE.STD_LOGIC_1164.all;\nuse ieee.numeric_std.all;\n";
 
     Parameters()
     {
