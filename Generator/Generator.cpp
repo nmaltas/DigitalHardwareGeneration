@@ -12,106 +12,107 @@ void PrintTables(const Parameters &Specs);
 //
 //
 void GenerateROMB(const Parameters &Specs);
-//
-//
 void GenerateMemoryX(const Parameters &Specs);
-//
-//
 void GenerateROMW(const Parameters &Specs);
-//
-//
 void GenerateControlModule(const Parameters &Specs);
-//
-//
 void GenerateMACUnit(const Parameters &Specs);
+void GenerateDataPathModule(const Parameters &Specs);
 //
 //
 // MAIN
 int main()
 {
 
-    Parameters Specs;
+  Parameters Specs;
 
-    PrintTables(Specs);
-
-    GenerateROMB(Specs);
-    GenerateMemoryX(Specs);
-    GenerateROMW(Specs);
-    GenerateControlModule(Specs);
-
-    cout << "Hey!!" << endl;
+  if (!Specs.Verify())
+  {
+    cout << "> Failed to generate files." << endl;
     return 0;
+  }
+
+  PrintTables(Specs);
+
+  GenerateROMB(Specs);
+  GenerateMemoryX(Specs);
+  GenerateROMW(Specs);
+  GenerateControlModule(Specs);
+  GenerateMACUnit(Specs);
+  GenerateDataPathModule(Specs);
+
+  cout << "Hey!!" << endl;
+  return 0;
 }
 //
 //
 void PrintTables(const Parameters &Specs)
 {
-    // Printing W Matrix
-    cout << "W is :" << endl;
-    for (int i = 0; i < Specs.M; i++)
-    {
-        cout << "| ";
-        for (int j = 0; j < Specs.N; j++)
-        {
-            cout << Specs.WMatrix.at(i).at(j);
-            if (j == (Specs.N - 1))
-            {
-                cout << "\t|" << endl;
-            }
-            else
-            {
-                cout << ", ";
-            }
-        }
-    }
-
-    // Printing X Matrix
-    cout << "X is :" << endl;
+  // Printing W Matrix
+  cout << "W is :" << endl;
+  for (int i = 0; i < Specs.M; i++)
+  {
     cout << "| ";
-    for (int i = 0; i < Specs.N; i++)
+    for (int j = 0; j < Specs.N; j++)
     {
-        cout << Specs.XMatrix.at(i);
-
-        if (i == (Specs.N - 1))
-        {
-            cout << " |" << endl;
-        }
-        else
-        {
-            cout << ", ";
-        }
+      cout << Specs.WMatrix.at(i).at(j);
+      if (j == (Specs.N - 1))
+      {
+        cout << "\t|" << endl;
+      }
+      else
+      {
+        cout << ", ";
+      }
     }
+  }
 
-    // Printing B Matrix
-    cout << "B is :" << endl;
-    cout << "| ";
-    for (int i = 0; i < Specs.M; i++)
+  // Printing X Matrix
+  cout << "X is :" << endl;
+  cout << "| ";
+  for (int i = 0; i < Specs.N; i++)
+  {
+    cout << Specs.XMatrix.at(i);
+
+    if (i == (Specs.N - 1))
     {
-        cout << Specs.BMatrix.at(i);
-
-        if (i == (Specs.M - 1))
-        {
-            cout << " |" << endl;
-        }
-        else
-        {
-            cout << ", ";
-        }
+      cout << " |" << endl;
     }
+    else
+    {
+      cout << ", ";
+    }
+  }
 
-    return;
+  // Printing B Matrix
+  cout << "B is :" << endl;
+  cout << "| ";
+  for (int i = 0; i < Specs.M; i++)
+  {
+    cout << Specs.BMatrix.at(i);
+
+    if (i == (Specs.M - 1))
+    {
+      cout << " |" << endl;
+    }
+    else
+    {
+      cout << ", ";
+    }
+  }
+
+  return;
 }
 //
 //
 // Generate ROMB VHDL file
 void GenerateROMB(const Parameters &Specs)
 {
-    ofstream Output;
-    Output.open("ROMB.vhd");
-    string Temp;
+  ofstream Output;
+  Output.open("ROMB.vhd");
+  string Temp;
 
-    Output << Specs.Libraries;
-    Output << format(R"VHDL(
+  Output << Specs.Libraries;
+  Output << format(R"VHDL(
 entity ROMB is
 
   generic (
@@ -119,24 +120,24 @@ entity ROMB is
 
     -- Memory slots have to be hardcodded. HLS will deal with this.
 )VHDL",
-                     Specs.T);
+                   Specs.T);
 
-    // Dynamic value generics.
-    for (int i = 0; i < Specs.M; i++)
+  // Dynamic value generics.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    Slot{0} : integer := {0}", i);
+
+    if (i == Specs.M - 1)
     {
-        Output << format("    Slot{0} : integer := {0}", i);
-
-        if (i == Specs.M - 1)
-        {
-            Output << ");" << endl;
-        }
-        else
-        {
-            Output << ";" << endl;
-        }
+      Output << ");" << endl;
     }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
 
-    Output << R"VHDL(
+  Output << R"VHDL(
   port (
     Enable : in std_logic;
     Clk    : in std_logic;
@@ -145,48 +146,48 @@ entity ROMB is
     -- Number of output ports has to be hardcoded. HLS will have to deal with this.
 )VHDL";
 
-    // Dynamic Ports.
-    for (int i = 0; i < Specs.M; i++)
+  // Dynamic Ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
+
+    if (i == Specs.M - 1)
     {
-        Output << format("    DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
-
-        if (i == Specs.M - 1)
-        {
-            Output << "\n  );" << endl;
-        }
-        else
-        {
-            Output << ";" << endl;
-        }
+      Output << "\n  );" << endl;
     }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
 
-    Output << R"VHDL(end ROMB;
+  Output << R"VHDL(end ROMB;
 
 architecture ROMB1 of ROMB is
 
   -- Hardcoded by HLS.
 )VHDL";
 
-    // Dynamic memory slot signal #.
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("  signal MemSlot{} : signed ((DataWidth - 1) downto 0);", i) << endl;
-    }
+  // Dynamic memory slot signal #.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("  signal MemSlot{} : signed ((DataWidth - 1) downto 0);", i) << endl;
+  }
 
-    Output << R"VHDL(
+  Output << R"VHDL(
 begin
 
   -- Values are assigned to the signals here.
   -- Hardcoded by HLS.
 )VHDL";
 
-    // Dynamic values to memory slot assignment.
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("  MemSlot{0} <= to_signed(Slot{0}, MemSlot{0}'length);", i) << endl;
-    }
+  // Dynamic values to memory slot assignment.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("  MemSlot{0} <= to_signed(Slot{0}, MemSlot{0}'length);", i) << endl;
+  }
 
-    Output << R"VHDL(
+  Output << R"VHDL(
   process (Clk) is
   begin
     if ((Clk'event) and (Clk = '1')) then
@@ -195,46 +196,46 @@ begin
       if (Enable = '1') then
 )VHDL";
 
-    // Dynamic # of slots enabled.
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("        DataOut{0} <= MemSlot{0};", i) << endl;
-    }
+  // Dynamic # of slots enabled.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("        DataOut{0} <= MemSlot{0};", i) << endl;
+  }
 
-    Output << "      else" << endl;
+  Output << "      else" << endl;
 
-    // Dynamic # of slots disabled.
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("        DataOut{} <= (others => 'Z');", i) << endl;
-    }
+  // Dynamic # of slots disabled.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("        DataOut{} <= (others => 'Z');", i) << endl;
+  }
 
-    Output << R"VHDL(      end if;
+  Output << R"VHDL(      end if;
     end if;
   end process;
 
 end ROMB1;)VHDL";
 
-    Output.close();
+  Output.close();
 }
 //
 //
 // Generate ROMX VHDL file
 void GenerateMemoryX(const Parameters &Specs)
 {
-    ofstream Output;
-    Output.open("MemoryModule.vhd");
+  ofstream Output;
+  Output.open("MemoryModule.vhd");
 
-    Output << Specs.Libraries;
+  Output << Specs.Libraries;
 
-    Output << format(R"VHDL(library IEEE;
+  Output << format(R"VHDL(library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use ieee.numeric_std.all;
 
 entity MemoryModule is
 
   generic (
-    DataWidth : integer := 8;
+    DataWidth : integer := {};
     MemSize   : integer := {});
 
   port (
@@ -284,21 +285,21 @@ begin
   end process;
 end MemoryModule1;
 )VHDL",
-                     Specs.N);
+                   Specs.T, Specs.N);
 
-    Output.close();
+  Output.close();
 }
 //
 //
 // Generate ROMW VHDL file
 void GenerateROMW(const Parameters &Specs)
 {
-    ofstream Output;
-    Output.open("ROMW.vhd");
+  ofstream Output;
+  Output.open("ROMW.vhd");
 
-    Output << Specs.Libraries;
+  Output << Specs.Libraries;
 
-    Output << format(R"VHDL(
+  Output << format(R"VHDL(
 entity ROMW is
 
   generic (
@@ -307,27 +308,27 @@ entity ROMW is
 
     -- These memory slots need to be hardcoded. HLS will have to deal with this.
 )VHDL",
-                     Specs.T, Specs.N);
+                   Specs.T, Specs.N);
 
-    // Dynamic value generics.
-    for (int i = 0; i < Specs.M; i++)
+  // Dynamic value generics.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    for (int j = 0; j < Specs.N; j++)
     {
-        for (int j = 0; j < Specs.N; j++)
-        {
-            Output << format("    Slot{0}{1} : integer := {2}", i, j, ((i * 4) + j));
+      Output << format("    Slot{0}{1} : integer := {2}", i, j, ((i * Specs.N) + j));
 
-            if ((i * 4) + j == ((Specs.M * Specs.N) - 1))
-            {
-                Output << ");" << endl;
-            }
-            else
-            {
-                Output << ";" << endl;
-            }
-        }
+      if ((i * Specs.N) + j == ((Specs.M * Specs.N) - 1))
+      {
+        Output << ");" << endl;
+      }
+      else
+      {
+        Output << ";" << endl;
+      }
     }
+  }
 
-    Output << R"VHDL(
+  Output << R"VHDL(
   port (
     Address : in integer range 0 to (Columns - 1);
     Enable  : in std_logic;
@@ -337,21 +338,21 @@ entity ROMW is
     -- Number of output ports has to be hardcoded. HLS will have to deal with this.
 )VHDL";
 
-    // Dynamic ports.
-    for (int i = 0; i < Specs.M; i++)
+  // Dynamic ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
+    if (i == Specs.M - 1)
     {
-        Output << format("    DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
-        if (i == Specs.M - 1)
-        {
-            Output << "\n  );" << endl;
-        }
-        else
-        {
-            Output << ";" << endl;
-        }
+      Output << "\n  );" << endl;
     }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
 
-    Output << R"VHDL(end ROMW;
+  Output << R"VHDL(end ROMW;
 
 architecture ROMW1 of ROMW is
   type MemoryArray is array ((Columns - 1) downto 0) of signed ((DataWidth - 1) downto 0);
@@ -359,13 +360,13 @@ architecture ROMW1 of ROMW is
   -- Hardcoded by HLS
 )VHDL";
 
-    // Dynamic memory slots declaration.
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("  signal Row{} : MemoryArray;", i) << endl;
-    }
+  // Dynamic memory slots declaration.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("  signal Row{} : MemoryArray;", i) << endl;
+  }
 
-    Output << R"VHDL(
+  Output << R"VHDL(
 begin
 
   -- Values are assigned to the arrays here.
@@ -373,18 +374,18 @@ begin
   -- Hardcoded by HLS.
 )VHDL";
 
-    // Dynamic memory slots value assignment.
-    for (int i = 0; i < Specs.M; i++)
+  // Dynamic memory slots value assignment.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    for (int j = 0; j < Specs.N; j++)
     {
-        for (int j = 0; j < Specs.N; j++)
-        {
-            Output << format("  Row{0}({1}) <= to_signed(Slot{0}{1}, DataWidth);", i, j) << endl;
-        }
-
-        Output << endl;
+      Output << format("  Row{0}({1}) <= to_signed(Slot{0}{1}, DataWidth);", i, j) << endl;
     }
 
-    Output << R"VHDL(  process (Clk) is
+    Output << endl;
+  }
+
+  Output << R"VHDL(  process (Clk) is
   begin
     if ((Clk'event) and (Clk = '1')) then
 
@@ -395,46 +396,46 @@ begin
         if (Address < Columns) then
 )VHDL";
 
-    // Data out control.
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("          DataOut{0} <= Row{0}(Address);", i) << endl;
-    }
+  // Data out control.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("          DataOut{0} <= Row{0}(Address);", i) << endl;
+  }
 
-    Output << "        else" << endl;
+  Output << "        else" << endl;
 
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("          DataOut{} <= (others => '1');", i) << endl;
-    }
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("          DataOut{} <= (others => '1');", i) << endl;
+  }
 
-    Output << R"VHDL(        end if;
+  Output << R"VHDL(        end if;
 
       else
 )VHDL";
 
-    for (int i = 0; i < Specs.M; i++)
-    {
-        Output << format("        DataOut{} <= (others => 'Z');", i) << endl;
-    }
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("        DataOut{} <= (others => 'Z');", i) << endl;
+  }
 
-    Output << R"VHDL(      end if;
+  Output << R"VHDL(      end if;
     end if;
   end process;
 end ROMW1;)VHDL";
 
-    Output.close();
+  Output.close();
 }
 //
 //
 void GenerateControlModule(const Parameters &Specs)
 {
-    ofstream Output;
-    Output.open("ControlModule.vhd");
+  ofstream Output;
+  Output.open("ControlModule.vhd");
 
-    Output << Specs.Libraries;
+  Output << Specs.Libraries;
 
-    Output << format(R"VHDL(library IEEE;
+  Output << format(R"VHDL(library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use ieee.numeric_std.all;
 
@@ -617,20 +618,451 @@ begin
 
 end ControlModule1;
 )VHDL",
-                     Specs.M, Specs.N, Specs.T);
+                   Specs.M, Specs.N, Specs.T);
 
-    Output.close();
+  Output.close();
 }
 //
 //
 void GenerateMACUnit(const Parameters &Specs)
 {
-    ofstream Output;
-    Output.open("MACUnit.vhd");
+  ofstream Output;
+  Output.open("MACUnit.vhd");
 
-    Output << Specs.Libraries;
+  Output << Specs.Libraries;
 
-    Output << R"VHDL()VHDL";
+  Output << R"VHDL(
+entity MACUnit is
 
-    Output.close();
+  generic (
+    DataWidth : integer := 8
+  );
+
+  port (
+    DataIn1 : in signed(DataWidth - 1 downto 0);
+    DataIn2 : in signed(DataWidth - 1 downto 0);
+    DataIn3 : in signed(DataWidth - 1 downto 0);
+    Hold    : in std_logic;
+    Clk     : in std_logic;
+    Reset_L : in std_logic;
+
+    DataOut     : out signed(((DataWidth * 2) - 1) downto 0);
+    ErrorCheck2 : out std_logic_vector (1 downto 0)
+  );
+end MACUnit;
+
+architecture MACUnit1 of MACUnit is
+
+  signal Product1    : signed(((DataWidth * 2) - 1) downto 0);
+  signal Product2    : signed(((DataWidth * 2) - 1) downto 0);
+  signal Sum         : signed(((DataWidth * 2) - 1) downto 0);
+  signal SumFeedback : signed(((DataWidth * 2) - 1) downto 0);
+  signal MSB1        : std_logic;
+  signal MSB2        : std_logic;
+  signal MSB3        : std_logic;
+  signal Overflow    : std_logic;
+  signal Underflow   : std_logic;
+  signal ErrorCheck1 : std_logic_vector (1 downto 0);
+
+begin
+
+  Product1 <= DataIn1 * DataIn2;
+
+  Sum <= SumFeedback + Product2;
+
+  MSB1 <= Product2(Product2'high);
+  MSB2 <= SumFeedback(SumFeedback'high);
+  MSB3 <= Sum(Sum'high);
+
+  Overflow <= '1' when ((MSB1 = '0') and (MSB2 = '0') and (MSB3 = '1')) else
+    '0';
+
+  Underflow <= '1' when ((MSB1 = '1') and (MSB2 = '1') and (MSB3 = '0')) else
+    '0';
+
+  DataOut     <= SumFeedback;
+  ErrorCheck2 <= ErrorCheck1;
+
+  process (Clk)
+  begin
+
+    ----------------------------Synchronous Reset--------------------------------------
+    if (Reset_L = '0') then
+      Product2 <= (others => '0');
+
+      SumFeedback <= (((DataWidth * 2) - 1) downto DataWidth => DataIn3(DataWidth - 1)) & DataIn3;
+      ErrorCheck1 <= "00";
+
+    elsif ((Clk'event) and (Clk = '1')) then
+      ---------------------------- Hold current value when Hold is asserted --------------------------------------
+      if (Hold = '1') then
+        Product2    <= Product2;
+        SumFeedback <= SumFeedback;
+        ErrorCheck1 <= ErrorCheck1;
+        ---------------------------- Otherwise run --------------------------------------
+      else
+        Product2    <= Product1;
+        SumFeedback <= Sum;
+
+        if (ErrorCheck1 = "00") then
+          ErrorCheck1 <= (Overflow, Underflow);
+        else
+          ErrorCheck1 <= ErrorCheck1;
+        end if;
+      end if;
+    end if;
+  end process;
+
+end MACUnit1;
+)VHDL";
+
+  Output.close();
+}
+//
+//
+void GenerateDataPathModule(const Parameters &Specs)
+{
+  ofstream Output;
+  Output.open("DatapathModule.vhd");
+
+  Output << Specs.Libraries;
+
+  Output << format(R"VHDL(
+entity DatapathModule is
+
+  generic (
+    DataWidth : integer := {};
+    Rows      : integer := {};
+    Columns   : integer := {}
+  );
+
+  port (
+    DataIn   : in signed ((DataWidth - 1) downto 0);
+    AddressW : in integer range 0 to (Columns - 1);
+    AddressX : in integer range 0 to (Columns - 1);
+    REW      : in std_logic;
+    REB      : in std_logic;
+    REX      : in std_logic;
+    WEX      : in std_logic;
+    Hold     : in std_logic;
+    Reset_L  : in std_logic;
+    Clk      : in std_logic;
+
+)VHDL",
+                   Specs.T, Specs.M, Specs.N);
+
+  // Data out ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    DataOut{} : out signed(((DataWidth * 2) - 1) downto 0);)VHDL", i) << endl;
+  }
+
+  Output << endl;
+
+  // ErrorCheck ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    ErrorCheck2{0} : out std_logic_vector (1 downto 0))VHDL", i);
+
+    if (i == Specs.M - 1)
+    {
+      Output << "\n  );" << endl;
+      Output << R"VHDL(end DatapathModule;)VHDL" << endl;
+    }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
+
+  Output << format(R"VHDL(
+architecture DatapathModule1 of DatapathModule is
+
+  component MACUnit is
+    generic (
+      DataWidth : integer := {0}
+    );
+
+    port (
+      DataIn1 : in signed(DataWidth - 1 downto 0);
+      DataIn2 : in signed(DataWidth - 1 downto 0);
+      DataIn3 : in signed(DataWidth - 1 downto 0);
+      Hold    : in std_logic;
+      Clk     : in std_logic;
+      Reset_L : in std_logic;
+
+      DataOut     : out signed(((DataWidth * 2) - 1) downto 0);
+      ErrorCheck2 : out std_logic_vector (1 downto 0)
+    );
+  end component;
+
+  component MemoryModule is
+    generic (
+      DataWidth : integer := {0};
+      MemSize   : integer := {1});
+
+    port (
+      DataIn  : in signed ((DataWidth - 1) downto 0);
+      Address : in integer range 0 to (MemSize - 1);
+      WE      : in std_logic;
+      RE      : in std_logic;
+      Clk     : in std_logic;
+
+      DataOut : out signed (DataWidth - 1 downto 0)
+    );
+  end component;
+
+  component ROMW is
+    generic (
+      DataWidth : integer := {0};
+      Columns   : integer := {1};
+
+      -- These memory slots need to be hardcoded. HLS will have to deal with this.)VHDL",
+                   Specs.T, Specs.N)
+         << endl;
+
+  // ROMW value generics.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    for (int j = 0; j < Specs.N; j++)
+    {
+      Output << format("      Slot{0}{1} : integer := {2}", i, j, ((i * Specs.N) + j));
+
+      if ((i * Specs.N) + j == ((Specs.M * Specs.N) - 1))
+      {
+        Output << ");" << endl;
+      }
+      else
+      {
+        Output << ";" << endl;
+      }
+    }
+  }
+
+  Output << R"VHDL(
+    port (
+      Address : in integer range 0 to (Columns - 1);
+      Enable  : in std_logic;
+      Clk     : in std_logic;
+
+      -- One output port is needed for each Row in order to support full parallelization.
+      -- Number of output ports has to be hardcoded. HLS will have to deal with this.
+)VHDL";
+
+  // ROMW ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("      DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
+
+    if (i == Specs.M - 1)
+    {
+      Output << "\n    );" << endl;
+      Output << R"VHDL(  end component;)VHDL" << endl;
+    }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
+
+  Output << R"VHDL(
+  component ROMB is
+    generic (
+      DataWidth : integer := 8;
+
+      -- Memory slots have to be hardcodded. HLS will deal with this.
+    )VHDL"
+         << endl;
+
+  // ROMB value generics.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("      Slot{0} : integer := {0}", i);
+
+    if (i == Specs.M - 1)
+    {
+      Output << ");" << endl;
+    }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
+
+  Output << R"VHDL(
+    port (
+      Enable : in std_logic;
+      Clk    : in std_logic;
+
+      -- Each Row/value neds a separate output port.
+      -- Number of output ports has to be hardcoded. HLS will have to deal with this.)VHDL"
+         << endl;
+
+  // ROMB Ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("      DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
+
+    if (i == Specs.M - 1)
+    {
+      Output << "\n    );" << endl;
+      Output << "  end component;" << endl
+             << endl;
+    }
+    else
+    {
+      Output << ";" << endl;
+    }
+  }
+
+  // Internal signals for ROMB DataOut
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(  signal DataInB{} : signed ((DataWidth - 1) downto 0);)VHDL", i) << endl;
+  }
+
+  Output << endl;
+
+  // Internal signals for ROMW DataOut
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(  signal DataInW{} : signed ((DataWidth - 1) downto 0);)VHDL", i) << endl;
+  }
+
+  Output << endl;
+
+  Output << R"VHDL(  signal DataInX : signed ((DataWidth - 1) downto 0);
+
+begin
+
+  MemoryW : ROMW
+  generic map(
+    DataWidth => DataWidth,
+    Columns   => Columns,
+)VHDL";
+
+  // Hardcoding Matrix W values into ROMW
+  for (int i = 0; i < Specs.M; i++)
+  {
+    for (int j = 0; j < Specs.N; j++)
+    {
+      Output << format("    Slot{0}{1}    => {2}", i, j, Specs.WMatrix.at(i).at(j));
+
+      if ((i * Specs.N) + j == ((Specs.M * Specs.N) - 1))
+      {
+        Output << "\n  )" << endl;
+      }
+      else
+      {
+        Output << "," << endl;
+      }
+    }
+  }
+
+  Output << R"VHDL(  port map
+  (
+    Address  => AddressW,
+    Enable   => REW,
+    Clk      => Clk,)VHDL"
+         << endl;
+
+  // Hardcoding the ports for ROMW
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    DataOut{0} => DataInW{0})VHDL", i);
+
+    if (i == Specs.M - 1)
+    {
+      Output << "\n  );" << endl;
+    }
+    else
+    {
+      Output << "," << endl;
+    }
+  }
+
+  Output << R"VHDL(
+  MemoryB : ROMB
+  generic map(
+    DataWidth => DataWidth,)VHDL"
+         << endl;
+
+  // Hardcoding Matrix B values into ROMB
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    Slot{0}     => {1})VHDL", i, Specs.BMatrix.at(i));
+
+    if ((i == Specs.M - 1))
+    {
+      Output << "\n  )" << endl;
+    }
+    else
+    {
+      Output << "," << endl;
+    }
+  }
+
+  Output << R"VHDL(  port map
+  (
+    Enable   => REB,
+    Clk      => Clk,)VHDL"
+         << endl;
+
+  // Hardcoding ports for ROMB
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    DataOut{0} => DataInB{0})VHDL", i);
+
+    if (i == Specs.M - 1)
+    {
+      Output << "\n  );" << endl;
+    }
+    else
+    {
+      Output << "," << endl;
+    }
+  }
+
+  Output << R"VHDL(
+  MemoryX : MemoryModule
+  generic map(
+    DataWidth => DataWidth,
+    MemSize   => Columns
+  )
+  port map
+  (
+    DataIn  => DataIn,
+    Address => AddressX,
+    WE      => WEX,
+    RE      => REX,
+    Clk     => Clk,
+    DataOut => DataInX
+  );
+)VHDL" << endl;
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(  MACUNit{0} : MACUnit
+  generic map(
+    DataWidth => DataWidth
+  )
+  port map
+  (
+    DataIn1     => DataInW{0},
+    DataIn2     => DataInX,
+    DataIn3     => DataInB{0},
+    Hold        => Hold,
+    Clk         => Clk,
+    Reset_L     => Reset_L,
+    DataOut     => DataOut{0},
+    ErrorCheck2 => ErrorCheck2{0}
+  );
+)VHDL",
+                     i)
+           << endl;
+  }
+
+  Output << R"VHDL(end DatapathModule1;)VHDL" << endl;
+
+  Output.close();
 }
