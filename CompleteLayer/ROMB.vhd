@@ -7,7 +7,7 @@ entity ROMB is
   generic (
     DataWidth : integer := 8;
 
-    -- Memory slots have to be hardcodded. HLS will deal with this.
+    -- Memory slots have to be hardcoded. HLS will deal with this.
     Slot0 : integer := 0;
     Slot1 : integer := 1;
     Slot2 : integer := 2);

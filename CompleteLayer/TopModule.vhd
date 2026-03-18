@@ -24,7 +24,7 @@ entity TopModule is
     DataOut1 : out signed(((DataWidth * 2) - 1) downto 0);
     DataOut2 : out signed(((DataWidth * 2) - 1) downto 0);
 
-    ErrorCheck : out std_logic_vector (5 downto 0)
+    ErrorCheck : out std_logic_vector (((Rows*2)-1) downto 0)
   );
 end TopModule;
 
