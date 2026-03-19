@@ -18,6 +18,7 @@ void GenerateControlModule(const Parameters &Specs);
 void GenerateMACUnit(const Parameters &Specs);
 void GenerateDataPathModule(const Parameters &Specs);
 void GenerateTopModule(const Parameters &Specs);
+void GenerateTestbench(const Parameters &Specs);
 //
 //
 // MAIN
@@ -41,6 +42,7 @@ int main()
   GenerateMACUnit(Specs);
   GenerateDataPathModule(Specs);
   GenerateTopModule(Specs);
+  GenerateTestbench(Specs);
 
   cout << "Hey!!" << endl;
   return 0;
@@ -57,14 +59,8 @@ void PrintTables(const Parameters &Specs)
     for (int j = 0; j < Specs.N; j++)
     {
       cout << Specs.WMatrix.at(i).at(j);
-      if (j == (Specs.N - 1))
-      {
-        cout << "\t|" << endl;
-      }
-      else
-      {
-        cout << ", ";
-      }
+
+      cout << ((Specs.N - 1) ? ("\t|") : (", "));
     }
   }
 
@@ -128,15 +124,7 @@ entity ROMB is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("    Slot{0} : integer := {0}", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << ");" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? (");") : (";")) << endl;
   }
 
   Output << R"VHDL(
@@ -152,15 +140,7 @@ entity ROMB is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("    DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n  );" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  );") : (";")) << endl;
   }
 
   Output << R"VHDL(end ROMB;
@@ -315,15 +295,7 @@ entity ROMW is
     for (int j = 0; j < Specs.N; j++)
     {
       Output << format("    Slot{0}{1} : integer := {2}", i, j, ((i * Specs.N) + j));
-
-      if ((i * Specs.N) + j == ((Specs.M * Specs.N) - 1))
-      {
-        Output << ");" << endl;
-      }
-      else
-      {
-        Output << ";" << endl;
-      }
+      Output << (((i * Specs.N) + j == ((Specs.M * Specs.N) - 1)) ? (");") : (";")) << endl;
     }
   }
 
@@ -341,14 +313,7 @@ entity ROMW is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("    DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
-    if (i == Specs.M - 1)
-    {
-      Output << "\n  );" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  );") : (";")) << endl;
   }
 
   Output << R"VHDL(end ROMW;
@@ -763,17 +728,10 @@ entity DatapathModule is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format(R"VHDL(    ErrorCheck2{0} : out std_logic_vector (1 downto 0))VHDL", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n  );" << endl;
-      Output << R"VHDL(end DatapathModule;)VHDL" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  );") : (";")) << endl;
   }
+
+  Output << R"VHDL(end DatapathModule;)VHDL" << endl;
 
   Output << format(R"VHDL(
 architecture DatapathModule1 of DatapathModule is
@@ -827,15 +785,7 @@ architecture DatapathModule1 of DatapathModule is
     for (int j = 0; j < Specs.N; j++)
     {
       Output << format("      Slot{0}{1} : integer := {2}", i, j, ((i * Specs.N) + j));
-
-      if ((i * Specs.N) + j == ((Specs.M * Specs.N) - 1))
-      {
-        Output << ");" << endl;
-      }
-      else
-      {
-        Output << ";" << endl;
-      }
+      Output << (((i * Specs.N) + j == ((Specs.M * Specs.N) - 1)) ? (");") : (";")) << endl;
     }
   }
 
@@ -853,17 +803,10 @@ architecture DatapathModule1 of DatapathModule is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("      DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n    );" << endl;
-      Output << R"VHDL(  end component;)VHDL" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n    );") : (";")) << endl;
   }
+
+  Output << R"VHDL(  end component;)VHDL" << endl;
 
   Output << R"VHDL(
   component ROMB is
@@ -878,15 +821,7 @@ architecture DatapathModule1 of DatapathModule is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("      Slot{0} : integer := {0}", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << ");" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? (");") : (";")) << endl;
   }
 
   Output << R"VHDL(
@@ -902,18 +837,11 @@ architecture DatapathModule1 of DatapathModule is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("      DataOut{} : out signed ((DataWidth - 1) downto 0)", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n    );" << endl;
-      Output << "  end component;" << endl
-             << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n    );") : (";")) << endl;
   }
+
+  Output << "  end component;" << endl
+         << endl;
 
   // Internal signals for ROMB DataOut.
   for (int i = 0; i < Specs.M; i++)
@@ -947,15 +875,7 @@ begin
     for (int j = 0; j < Specs.N; j++)
     {
       Output << format("    Slot{0}{1}    => {2}", i, j, Specs.WMatrix.at(i).at(j));
-
-      if ((i * Specs.N) + j == ((Specs.M * Specs.N) - 1))
-      {
-        Output << "\n  )" << endl;
-      }
-      else
-      {
-        Output << "," << endl;
-      }
+      Output << ((((i * Specs.N) + j == (Specs.M * Specs.N) - 1)) ? ("\n  )") : (",")) << endl;
     }
   }
 
@@ -970,15 +890,7 @@ begin
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format(R"VHDL(    DataOut{0} => DataInW{0})VHDL", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n  );" << endl;
-    }
-    else
-    {
-      Output << "," << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  );") : (",")) << endl;
   }
 
   Output << R"VHDL(
@@ -991,15 +903,7 @@ begin
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format(R"VHDL(    Slot{0}     => {1})VHDL", i, Specs.BMatrix.at(i));
-
-    if ((i == Specs.M - 1))
-    {
-      Output << "\n  )" << endl;
-    }
-    else
-    {
-      Output << "," << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  )") : (",")) << endl;
   }
 
   Output << R"VHDL(  port map
@@ -1012,15 +916,7 @@ begin
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format(R"VHDL(    DataOut{0} => DataInB{0})VHDL", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n  );" << endl;
-    }
-    else
-    {
-      Output << "," << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  );") : (",")) << endl;
   }
 
   Output << R"VHDL(
@@ -1171,17 +1067,9 @@ architecture TopModule1 of TopModule is
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format(R"VHDL(      ErrorCheck2{} : out std_logic_vector (1 downto 0))VHDL", i);
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n    );" << endl;
-      Output << "  end component;" << endl;
-    }
-    else
-    {
-      Output << ";" << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n    );") : (";")) << endl;
   }
+  Output << "  end component;" << endl;
 
   Output << R"VHDL(
   signal AddressW : integer range 0 to (Columns - 1);
@@ -1250,17 +1138,185 @@ begin
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format(R"VHDL(    ErrorCheck2{0} => ErrorCheck({2} downto {1}))VHDL", i, (i * 2), (i * 2 + 1));
-
-    if (i == Specs.M - 1)
-    {
-      Output << "\n  );" << endl;
-      Output << "end TopModule1;" << endl;
-    }
-    else
-    {
-      Output << "," << endl;
-    }
+    Output << ((i == Specs.M - 1) ? ("\n  );") : (",")) << endl;
   }
+  Output << "end TopModule1;" << endl;
 
   Output.close();
 }
+//
+//
+void GenerateTestbench(const Parameters &Specs)
+{
+  string InputTableWB;
+  ofstream Output;
+  Output.open(format("TB_TopModule{0}x{1}.vhd", Specs.M, Specs.N));
+
+  Output << Specs.Libraries;
+
+  Output << format(R"VHDL(use work.Tests{0}x{1}.all;
+use ieee.std_logic_misc.all;
+
+entity TB_TopModule_{0}x{1} is
+  generic (
+    DataWidth : integer := {2};
+    Rows      : integer := {0};
+    Columns   : integer := {1}
+  );
+
+end TB_TopModule_{0}x{1};
+
+architecture TB_TopModule1_{0}x{1} of TB_TopModule_{0}x{1} is
+
+  component TopModule is
+    generic (
+      DataWidth : integer := {2};
+      Rows      : integer := {0};
+      Columns   : integer := {1}
+    );
+
+    port (
+      DataIn      : in signed ((DataWidth - 1) downto 0);
+      InputValid  : in std_logic;
+      OutputReady : in std_logic;
+      Reset_L     : in std_logic;
+      Clk         : in std_logic;
+
+      OutputValid : out std_logic;
+      InputReady  : out std_logic;
+)VHDL",
+                   Specs.M, Specs.N, Specs.T)
+         << endl;
+
+  // Output ports.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(      DataOut{} : out signed(((DataWidth * 2) - 1) downto 0);)VHDL", i) << endl;
+  }
+
+  Output << format(R"VHDL(
+      ErrorCheck : out std_logic_vector ({0} downto 0)
+    );
+  end component;
+
+  signal Clk        : std_logic               := '0';
+  signal ClockCount : integer range 0 to 1023 := 0;
+
+  signal InputValid  : std_logic := '0';
+  signal OutputReady : std_logic := '0';
+  signal Reset_L     : std_logic := '0';
+
+  signal DataIn : signed ((DataWidth - 1) downto 0) := (others => '0');
+)VHDL",
+                   ((Specs.M * 2) - 1))
+         << endl;
+
+  // Output data signals.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(  signal DataOut{0}    : signed(((DataWidth * 2) - 1) downto 0) := (others => '0');)VHDL", i) << endl;
+  }
+
+  Output << format(R"VHDL(  signal OutputValid : std_logic                              := '0';
+  signal InputReady  : std_logic                              := '0';
+  signal ErrorCheck  : std_logic_vector ({0} downto 0)          := (others => '0');
+
+begin
+
+  DUT1 : TopModule
+  generic map(
+    DataWidth => DataWidth,
+    Rows      => Rows,
+    Columns   => Columns
+  )
+  port map
+  (
+    DataIn      => DataIn,
+    InputValid  => InputValid,
+    OutputReady => OutputReady,
+    Reset_L     => Reset_L,
+    Clk         => Clk,)VHDL",
+                   ((Specs.M * 2) - 1))
+         << endl;
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    DataOut{0}    => DataOut{0},)VHDL", i) << endl;
+  }
+
+  Output << R"VHDL(    OutputValid => OutputValid,
+    InputReady  => InputReady,
+    ErrorCheck  => ErrorCheck
+  );
+
+  Clk <= not Clk after 5 ns;
+
+  process
+  begin
+    wait until Clk'event and Clk = '1';
+    wait for 1 ns;
+    ClockCount <= ClockCount + 1;
+  end process;
+
+  process
+  begin
+    wait until ClockCount >= 500;
+    assert FALSE report "Simulation completed successfully" severity failure;
+  end process;
+
+  ------------------------------ Simulation Stimuli ----------------------------
+  process
+    variable i         : integer                        := 0;
+    variable FinalPass : std_logic_vector (13 downto 0) := (others => '1');
+    variable Pass      : boolean                        := true;
+
+    -- No overflow/underflow.
+    variable Input1 : InputTable := ()VHDL"
+         << endl;
+
+  // Generating Input Tables string
+
+  // Hardcoding W values.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    InputTableWB += "    (";
+
+    for (int j = 0; j < Specs.N; j++)
+    {
+      InputTableWB += format("{}", Specs.WMatrix.at(i).at(j));
+
+      InputTableWB += (j == (Specs.N - 1)) ? ("") : (", ");
+    }
+
+    InputTableWB += ((i == 0) ? "), -- This is W\n" : "),\n");
+  }
+
+  InputTableWB += "    (";
+
+  // Hardcoding B values.
+  for (int i = 0; i < Specs.N; i++)
+  {
+    InputTableWB += (i >= (2 * Specs.M - Specs.N)) ? ("0") : (format("{}", Specs.BMatrix.at(i)));
+
+    InputTableWB += (i == Specs.N - 1) ? ("), -- This is B\n") : (", ");
+  }
+
+  Output << InputTableWB << "    (";
+
+  // Hardcoding X values.
+  for (int i = 0; i < Specs.N; i++)
+  {
+    Output << Specs.XMatrix.at(i);
+
+    Output << ((i == Specs.N - 1) ? (") -- This is X\n") : (", "));
+  }
+
+  Output << "    );" << endl;
+
+  Output << R"VHDL()VHDL" << endl;
+  Output << format(R"VHDL(end TB_TopModule1_{0}x{1};)VHDL", Specs.M, Specs.N) << endl;
+
+  Output.close();
+}
+//
+//
