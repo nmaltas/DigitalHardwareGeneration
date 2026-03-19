@@ -60,24 +60,7 @@ void PrintTables(const Parameters &Specs)
     {
       cout << Specs.WMatrix.at(i).at(j);
 
-      cout << ((Specs.N - 1) ? ("\t|") : (", "));
-    }
-  }
-
-  // Printing X Matrix
-  cout << "X is :" << endl;
-  cout << "| ";
-  for (int i = 0; i < Specs.N; i++)
-  {
-    cout << Specs.XMatrix.at(i);
-
-    if (i == (Specs.N - 1))
-    {
-      cout << " |" << endl;
-    }
-    else
-    {
-      cout << ", ";
+      cout << ((j == Specs.N - 1) ? ("\t|\n") : (", "));
     }
   }
 
@@ -1269,9 +1252,7 @@ begin
     variable i         : integer                        := 0;
     variable FinalPass : std_logic_vector (13 downto 0) := (others => '1');
     variable Pass      : boolean                        := true;
-
-    -- No overflow/underflow.
-    variable Input1 : InputTable := ()VHDL"
+)VHDL"
          << endl;
 
   // Generating Input Tables string
@@ -1296,25 +1277,196 @@ begin
   // Hardcoding B values.
   for (int i = 0; i < Specs.N; i++)
   {
-    InputTableWB += (i >= (2 * Specs.M - Specs.N)) ? ("0") : (format("{}", Specs.BMatrix.at(i)));
-
+    InputTableWB += (i >= (2 * Specs.M - Specs.N) + 1) ? ("0") : (format("{}", Specs.BMatrix.at(i)));
     InputTableWB += (i == Specs.N - 1) ? ("), -- This is B\n") : (", ");
   }
 
-  Output << InputTableWB << "    (";
-
-  // Hardcoding X values.
-  for (int i = 0; i < Specs.N; i++)
+  // Generating test value sets.
+  for (int i = 0; i < Specs.XMatrix.size(); i++)
   {
-    Output << Specs.XMatrix.at(i);
+    // Comments for each set.
+    switch (i)
+    {
+    case 0:
+      Output << R"VHDL(    -- No overflow/underflow.)VHDL" << endl;
+      break;
+    case 1:
+      Output << R"VHDL(    -- Going to trigger an overflow in row 2.)VHDL" << endl;
+      break;
+    case 2:
+      Output << R"VHDL(    -- Going to trigger an underflow in row 2.)VHDL" << endl;
+      break;
+    case 3:
+      Output << R"VHDL(    -- Going to trigger both an overflow and an underflow for rows 1 and 3 respectively.)VHDL" << endl;
+      break;
+    case 4:
+      Output << R"VHDL(    -- No overflow/underflow.)VHDL" << endl;
+      break;
 
-    Output << ((i == Specs.N - 1) ? (") -- This is X\n") : (", "));
+    default:
+      cout << "This shouldn't have happened! i = " << i << endl;
+    }
+
+    Output << format(R"VHDL(    variable Input{0} : InputTable := ()VHDL", (i + 1)) << endl;
+
+    Output << InputTableWB << "    (";
+
+    // Hardcoding X values.
+    for (int j = 0; j < Specs.N; j++)
+    {
+      Output << Specs.XMatrix.at(i).at(j);
+      Output << ((j == Specs.N - 1) ? (") -- This is X\n") : (", "));
+    }
+
+    Output << "    );" << endl
+           << endl;
   }
 
-  Output << "    );" << endl;
+  // Output tables.
+  for (int i = 0; i < Specs.XMatrix.size(); i++)
+  {
+    // Comments for each table.
+    switch (i)
+    {
+    case 0:
+      Output << R"VHDL(    -- Output without overflow/underflow.)VHDL" << endl;
+      break;
+    case 1:
+      Output << R"VHDL(    -- Output with overflow in position 2.)VHDL" << endl;
+      break;
+    case 2:
+      Output << R"VHDL(    -- Output with underflow in position 2.)VHDL" << endl;
+      break;
+    case 3:
+      Output << R"VHDL(    -- Output with overflow and underflow in positions 1 and 3 respectively.)VHDL" << endl;
+      break;
+    case 4:
+      Output << R"VHDL(    -- Output without overflow/underflow.)VHDL" << endl;
+      break;
 
-  Output << R"VHDL()VHDL" << endl;
-  Output << format(R"VHDL(end TB_TopModule1_{0}x{1};)VHDL", Specs.M, Specs.N) << endl;
+    default:
+      cout << "This shouldn't have happened! i = " << i << endl;
+    }
+
+    Output << format(R"VHDL(    variable Output{} : OutputTable := ()VHDL", (i + 1));
+
+    for (int j = 0; j < Specs.M; j++)
+    {
+      Output << "0";
+      Output << ((j == Specs.M - 1) ? (");\n") : (", "));
+    }
+  }
+  Output << endl;
+
+  Output << R"VHDL(  begin
+
+    --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Calculate the Expected Output @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@)VHDL"
+         << endl;
+
+  // Calculating all Outputs.
+  for (int i = 0; i < Specs.XMatrix.size(); i++)
+  {
+    Output << format(R"VHDL(    Output{0} := CalculateOutput_{1}x{2}(Input{0});)VHDL", (i + 1), Specs.M, Specs.N) << endl;
+  }
+
+  Output << format(R"VHDL(
+    -- i := 0;
+    -- while i < Rows loop
+    --   assert (false) report "Row " & integer'image(i) & ": " & integer'image(Output1(i)) severity note;
+
+    --   i := i + 1;
+    -- end loop;
+
+    --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    report "Test 0 starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 0 : Resetting the system
+    Test0_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Reset_L, InputValid, OutputReady, Pass);
+    FinalPass(0) := Bool2Std(Pass);
+
+    report "Test 1a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(1) := Bool2Std(Pass);
+
+    report "Test 1b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 1b : Calculation. Regular operation.
+    Test1b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(2) := Bool2Std(Pass);
+
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input2, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(3) := Bool2Std(Pass);
+
+    report "Test 2a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 2a : Calculation. Overflow detection test.
+    Test2a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output2, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(4) := Bool2Std(Pass);
+
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input3, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(5) := Bool2Std(Pass);
+
+    report "Test 2b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 2b : Calculation. Overflow detection test.
+    Test2b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output3, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(6) := Bool2Std(Pass);
+
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(7) := Bool2Std(Pass);
+
+    report "Test 2c starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 2c : Calculation. Simultaneous Overflow and Underflow detection test.
+    Test2c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(8) := Bool2Std(Pass);
+
+    report "Test 3a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3a : Memory Loading with abrupt InputValid deassertion
+    Test3a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input5, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(9) := Bool2Std(Pass);
+
+    report "Test 3c starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3c : Abrupt reset assertion during Run state.
+    Test3c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(10) := Bool2Std(Pass);
+
+    report "Test 3b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3b : Memory Loading with abrupt reset assertion
+    Test3b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input5, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(11) := Bool2Std(Pass);
+
+    -- Test 1a: Memory Loading. Regular operation.
+    Test1a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Input4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(12) := Bool2Std(Pass);
+
+    report "Test 3d starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
+    -- Test 3d : Reset assertion during Done state
+    Test3d_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    FinalPass(13) := Bool2Std(Pass);
+
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    if (and_reduce(FinalPass) = '1') then
+      report "PASS" severity error;
+    else
+      report "FAIL" severity error;
+    end if;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+    report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
+
+    wait;
+  end process;
+
+end TB_TopModule1_{0}x{1};)VHDL",
+                   Specs.M, Specs.N)
+         << endl;
 
   Output.close();
 }

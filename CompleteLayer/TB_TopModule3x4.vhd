@@ -147,11 +147,11 @@ begin
 
     -- Output without overflow/underflow.
     variable Output1 : OutputTable := (0, 0, 0);
-    -- Output with overflowin position 2.
+    -- Output with overflow in position 2.
     variable Output2 : OutputTable := (0, 0, 0);
     -- Output with underflow in position 2.
     variable Output3 : OutputTable := (0, 0, 0);
-    -- Output with overflow and underflow in positions 1 and 3 respectively
+    -- Output with overflow and underflow in positions 1 and 3 respectively.
     variable Output4 : OutputTable := (0, 0, 0);
     -- Output without overflow/underflow.
     variable Output5 : OutputTable := (0, 0, 0);
@@ -173,7 +173,7 @@ begin
     --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     report "Test 0 starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
-    -- -- Test 0 : Resetting the system
+    -- Test 0 : Resetting the system
     Test0_3x4(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, Reset_L, InputValid, OutputReady, Pass);
     FinalPass(0) := Bool2Std(Pass);
 
