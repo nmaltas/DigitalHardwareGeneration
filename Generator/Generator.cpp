@@ -1391,7 +1391,15 @@ begin
 
     report "Test 1b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
     -- Test 1b : Calculation. Regular operation.
-    Test1b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    Test1b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk,)VHDL",
+                   Specs.M, Specs.N);
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("DataOut{}, ", i);
+  }
+
+  Output << format(R"VHDL(Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
     FinalPass(2) := Bool2Std(Pass);
 
     -- Test 1a: Memory Loading. Regular operation.
@@ -1400,7 +1408,16 @@ begin
 
     report "Test 2a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
     -- Test 2a : Calculation. Overflow detection test.
-    Test2a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output2, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    
+    Test2a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
+                   Specs.M, Specs.N);
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("DataOut{}, ", i);
+  }
+
+  Output << format(R"VHDL(Output2, Reset_L, InputValid, OutputReady, DataIn, Pass);
     FinalPass(4) := Bool2Std(Pass);
 
     -- Test 1a: Memory Loading. Regular operation.
@@ -1409,7 +1426,15 @@ begin
 
     report "Test 2b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
     -- Test 2b : Calculation. Overflow detection test.
-    Test2b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output3, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    Test2b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
+                   Specs.M, Specs.N);
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("DataOut{}, ", i);
+  }
+
+  Output << format(R"VHDL(Output3, Reset_L, InputValid, OutputReady, DataIn, Pass);
     FinalPass(6) := Bool2Std(Pass);
 
     -- Test 1a: Memory Loading. Regular operation.
@@ -1418,7 +1443,15 @@ begin
 
     report "Test 2c starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
     -- Test 2c : Calculation. Simultaneous Overflow and Underflow detection test.
-    Test2c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    Test2c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
+                   Specs.M, Specs.N);
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("DataOut{}, ", i);
+  }
+
+  Output << format(R"VHDL(Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
     FinalPass(8) := Bool2Std(Pass);
 
     report "Test 3a starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
@@ -1428,7 +1461,15 @@ begin
 
     report "Test 3c starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
     -- Test 3c : Abrupt reset assertion during Run state.
-    Test3c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    Test3c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
+                   Specs.M, Specs.N);
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("DataOut{}, ", i);
+  }
+
+  Output << format(R"VHDL(Output1, Reset_L, InputValid, OutputReady, DataIn, Pass);
     FinalPass(10) := Bool2Std(Pass);
 
     report "Test 3b starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
@@ -1442,7 +1483,15 @@ begin
 
     report "Test 3d starting at clock cycle: " & integer'image(ClockCount + 1) severity warning;
     -- Test 3d : Reset assertion during Done state
-    Test3d_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, DataOut0, DataOut1, DataOut2, Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
+    Test3d_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
+                   Specs.M, Specs.N);
+
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("DataOut{}, ", i);
+  }
+
+  Output << format(R"VHDL(Output4, Reset_L, InputValid, OutputReady, DataIn, Pass);
     FinalPass(13) := Bool2Std(Pass);
 
     report "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" severity error;
