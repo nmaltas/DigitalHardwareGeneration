@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <format>
+#include <cmath>
 
 #include "Parameters.hpp"
 
@@ -19,6 +20,7 @@ void GenerateMACUnit(const Parameters &Specs);
 void GenerateDataPathModule(const Parameters &Specs);
 void GenerateTopModule(const Parameters &Specs);
 void GenerateTestbench(const Parameters &Specs);
+void GenerateTests(const Parameters &Specs);
 //
 //
 // MAIN
@@ -43,6 +45,7 @@ int main()
   GenerateDataPathModule(Specs);
   GenerateTopModule(Specs);
   GenerateTestbench(Specs);
+  GenerateTests(Specs);
 
   cout << "Hey!!" << endl;
   return 0;
@@ -1131,6 +1134,8 @@ begin
 //
 void GenerateTestbench(const Parameters &Specs)
 {
+  int ErrorCheckWidth = (Specs.M * 2) - 1;
+
   string InputTableWB;
   ofstream Output;
   Output.open(format("TB_TopModule{0}x{1}.vhd", Specs.M, Specs.N));
@@ -1191,7 +1196,7 @@ architecture TB_TopModule1_{0}x{1} of TB_TopModule_{0}x{1} is
 
   signal DataIn : signed ((DataWidth - 1) downto 0) := (others => '0');
 )VHDL",
-                   ((Specs.M * 2) - 1))
+                   ErrorCheckWidth)
          << endl;
 
   // Output data signals.
@@ -1219,7 +1224,7 @@ begin
     OutputReady => OutputReady,
     Reset_L     => Reset_L,
     Clk         => Clk,)VHDL",
-                   ((Specs.M * 2) - 1))
+                   ErrorCheckWidth)
          << endl;
 
   for (int i = 0; i < Specs.M; i++)
@@ -1394,6 +1399,7 @@ begin
     Test1b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk,)VHDL",
                    Specs.M, Specs.N);
 
+  // DataOut ports for Test_1b
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("DataOut{}, ", i);
@@ -1412,6 +1418,7 @@ begin
     Test2a_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
                    Specs.M, Specs.N);
 
+  // DataOut ports for Test_2a
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("DataOut{}, ", i);
@@ -1429,6 +1436,7 @@ begin
     Test2b_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
                    Specs.M, Specs.N);
 
+  // DataOut ports for Test_2b
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("DataOut{}, ", i);
@@ -1446,6 +1454,7 @@ begin
     Test2c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
                    Specs.M, Specs.N);
 
+  // DataOut ports for Test_2c
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("DataOut{}, ", i);
@@ -1464,6 +1473,7 @@ begin
     Test3c_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
                    Specs.M, Specs.N);
 
+  // DataOut ports for Test_3c
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("DataOut{}, ", i);
@@ -1486,6 +1496,7 @@ begin
     Test3d_{0}x{1}(OutputValid, InputReady, ErrorCheck, ClockCount, Clk, )VHDL",
                    Specs.M, Specs.N);
 
+  // DataOut ports for Test_3d
   for (int i = 0; i < Specs.M; i++)
   {
     Output << format("DataOut{}, ", i);
@@ -1515,6 +1526,656 @@ begin
 
 end TB_TopModule1_{0}x{1};)VHDL",
                    Specs.M, Specs.N)
+         << endl;
+
+  Output.close();
+}
+//
+//
+void GenerateTests(const Parameters &Specs)
+{
+
+  int ErrorCheckWidth = (Specs.M * 2) - 1;
+  int InputLowerBound = -1 * (1 << (Specs.T - 1));
+  int InputUpperBound = (1 << (Specs.T - 1)) - 1;
+  int OutputLowerBound = -1 * (1 << (2 * Specs.T)); // It's supposed to be able to take values higher than 2^(2N-1). We want to be able to see if it over/underflows.
+  int OutputUpperBound = (1 << (2 * Specs.T)) - 1;  // It's supposed to be able to take values lower than -2^(2N-1). We want to be able to see if it over/underflows.
+
+  ofstream Output;
+  Output.open(format("Tests{0}x{1}.vhd", Specs.M, Specs.N));
+
+  Output << Specs.Libraries;
+
+  Output << format(R"VHDL(
+package Tests{0}x{1} is
+
+  constant DataWidth : integer := {2};
+  constant Rows      : integer := {0};
+  constant Columns   : integer := {1};
+
+  type InputTable is array (0 to (Rows + 1), 0 to (Columns - 1)) of integer range {3} to {4};
+  type OutputTable is array (0 to (Rows - 1)) of integer range {5} to {6};
+
+  -- Calculate the expected output
+  function CalculateOutput_{0}x{1}(Input : InputTable) return OutputTable;
+
+  -- Conversion of booleans into std_logic
+  function Bool2Std(Input : boolean) return std_logic;
+
+  -- Test 0 : Resetting the system
+  procedure Test0_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({7} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+
+    variable Pass : out boolean
+  );
+
+  -- Test 1a : Memory Loading. Regular operation.
+  procedure Test1a_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({7} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;
+    variable Input1    : in InputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 1b: Calculation. Regular operation.
+  procedure Test1b_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({7} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, Specs.T, InputLowerBound, InputUpperBound, OutputLowerBound, OutputUpperBound, ErrorCheckWidth)
+         << endl;
+
+  // DataOut ports for Test_1b prototype.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 2a : Calculation. Overflow detection test.
+  procedure Test2a_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector(5 downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  // DataOut ports for Test_2a prototype.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 2b : Calculation. Underflow detection test.
+  procedure Test2b_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  // DataOut ports for Test_2b prototype.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 2c : Calculation. Simultaneous Overflow and Underflow detection test.
+  procedure Test2c_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  // DataOut ports for Test_2c prototype.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 3a : Memory Loading with abrupt InputValid deassertion
+  procedure Test3a_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;
+    variable Input1    : in InputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 3b: Memory Loading with abrupt reset assertion
+  procedure Test3b_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;
+    variable Input1    : in InputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 3c: Abrupt reset assertion during Run state.
+  procedure Test3c_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  // DataOut ports for Test_3c prototype.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+  -- Test 3d : Reset assertion during Done state
+  procedure Test3d_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  // DataOut ports for Test_3d prototype.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean
+  );
+
+end package Tests{0}x{1};
+--@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+--@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+--@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+--@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+--@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+package body Tests{0}x{1} is
+
+  -- Function to calculate the expected output when given the predetermined input.
+  function CalculateOutput_{0}x{1}(Input : InputTable) return OutputTable is
+
+    variable TempOutput : OutputTable                   := (0, 0, 0);
+    variable i, j       : integer range 0 to 31         := 0;
+    variable Sum        : integer range {3} to {4} := 0;
+  begin
+
+    -- Cycle through output matrix rows.
+    i := 0;
+
+    while i <= (Rows - 1) loop
+      Sum := Input(Rows, i);
+      j   := 0;
+      while (j <= (Columns - 1)) loop
+
+        Sum := Sum + (Input(i, j) * Input((Rows + 1), j));
+
+        j := j + 1;
+      end loop;
+
+      TempOutput(i) := Sum;
+
+      i := i + 1;
+    end loop;
+
+    return TempOutput;
+  end function CalculateOutput_{0}x{1};
+
+  function Bool2Std(Input : boolean) return std_logic is
+  begin
+
+    if Input then
+      return '1';
+    else
+      return '0';
+    end if;
+
+  end function Bool2Std;
+
+  --------------------------------------------------------------------
+  -- Test 0 : Resetting the system
+  --------------------------------------------------------------------
+  procedure Test0_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+
+    variable Pass : out boolean) is
+
+    variable TempPass : boolean;
+    variable i        : integer;
+
+  begin
+
+    TempPass := true;
+
+    Reset_L <= '0';
+    wait for 10 ns;
+
+    i := 0;
+    while i < Columns loop
+
+      wait until Clk'event and Clk = '1';
+
+      Reset_L <= '1';
+
+      if (OutputValid /= '0') then
+        report "OutputValid does not reset properly. Test0. Clock : " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      if (InputReady /= '0') then
+        report "InputReady does not reset properly. Test0. Clock: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      if (ErrorCheck /= (ErrorCheck'range  => '0')) then
+        report "ErrorCheck does not reset properly. Test0. Clock: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      i := i + 1;
+    end loop;
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 0 : PASS" severity warning;
+    else
+      report "Test 0 : FAIL" severity error;
+    end if;
+
+  end procedure Test0_{0}x{1};
+  --------------------------------------------------------------------
+
+  --------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- Test 1 : Testing regular operation.
+  --------------------------------------------------------------------
+  -- Test 1a : Memory Loading. Regular operation.
+  --------------------------------------------------------------------
+  procedure Test1a_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;
+    variable Input1    : in InputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean                           := false;
+    variable i, k, InputValue                : integer                           := 0;
+    variable TempOutputReady, TempInputValid : std_logic                         := '0';
+    variable TempDataIn                      : signed ((DataWidth - 1) downto 0) := (others => '0');
+  begin
+
+    -- Initial setup.
+    TempPass        := true;
+    TempOutputReady := '1';
+    TempInputValid  := '1';
+
+    wait for 10 ns;
+
+    -- Loading Memory
+    InputValid  <= TempInputValid;
+    OutputReady <= TempOutputReady;
+    DataIn      <= to_signed(0, DataIn'length);
+
+    k := 1;
+    wait until Clk'event and Clk = '1';
+
+    -- Cycle through the X elements.
+    i := 0;
+    while i < Columns loop
+
+      -- Pass the variable values to drive the signals.
+      TempDataIn := to_signed(Input1((Input1'length(1) - 1), i), DataIn'length);
+      DataIn <= TempDataIn;
+
+      wait until Clk'event and Clk = '1';
+
+      -- Output must remain low throughout the loading stage.
+      if (OutputValid /= '0') then
+        report "OutputValid does not remain low. ClockCount: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+      -- InputReady must remain high throughout the loading stage.
+
+      if (InputReady /= '1') and (i < (Columns - 2)) then
+        report "InputReady went low prematurely. ClockCount: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- ErrorCheck must not be affected in any way while loading.
+      if (ErrorCheck /= (ErrorCheck'range  => '0')) then
+        report "ErrorCheck got raised erratically. ClockCount: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      if (TempInputValid = '1') then
+        i := i + 1;
+      end if;
+
+      k := k + 1;
+    end loop;
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 1a : PASS" severity warning;
+    else
+      report "Test 1a : FAIL" severity error;
+    end if;
+
+  end procedure Test1a_{0}x{1};
+  --------------------------------------------------------------------
+
+  --------------------------------------------------------------------
+  -- Test 1b : Calculation. Regular operation.
+  --------------------------------------------------------------------
+  procedure Test1b_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth, OutputLowerBound, OutputUpperBound)
+         << endl;
+
+  // Dataout ports for Test_1b.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << R"VHDL(    variable Output1   : in OutputTable;
+
+    signal Reset_L     : out std_logic;
+    signal InputValid  : out std_logic;
+    signal OutputReady : out std_logic;
+    signal DataIn      : out signed ((DataWidth - 1) downto 0);
+    variable Pass      : out boolean) is
+
+    variable TempPass                        : boolean                           := true;
+    variable i, k, InputValue                : integer                           := 0;
+    variable TempDataIn                      : signed ((DataWidth - 1) downto 0) := (others => '0');
+    variable TempOutputReady, TempInputValid : std_logic                         := '0';
+  begin
+
+    TempPass := true;
+
+    InputValid  <= '1';
+    OutputReady <= '0';
+    TempInputValid := '0';
+
+    i := 0;
+    while i < (Columns + 2) loop
+
+      -- Deassert InputValid pseudorandomly.
+      if (i mod 2 = 0) then
+        TempInputValid := not TempInputValid;
+      else
+        TempInputValid := TempInputValid;
+      end if;
+
+      InputValid <= TempInputValid;
+
+      wait until Clk'event and Clk = '1';
+
+      -- InputReady must remain low throughout the loading stage.
+      if (InputReady /= '0') then
+        report "InputReady does not remain low. ClockCount: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- OutputValid must remain low throughout the calculation stage.
+      if (OutputValid /= '0' and (i < (Columns + 1))) then
+        report "OutputValid does not remain low. ClockCount: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      -- ErrorCheck must remain low in this test.
+      if (ErrorCheck /= (ErrorCheck'range  => '0')) then
+        report "ErrorCheck got raised erratically. ClockCount: " & integer'image(ClockCount) severity error;
+        TempPass := false;
+      end if;
+
+      i := i + 1;
+    end loop;
+
+    -- Wait for 5 clock cycles in Done state before asserting OutputReady.
+    k := 0;
+    while k < 5 loop
+
+      wait until Clk'event and Clk = '1';
+
+      -- When OutputValid goes high, the correct Data must be output.)VHDL"
+         << endl;
+
+  // Checks for DataOut ports while the system is waiting for OutputReady.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(      if (DataOut{0} /= Output1({0})) then
+        report "Incorrect DataOut at position {0}: " & integer'image(to_integer(DataOut{0})) & ". Expected : " & integer'image(Output1({0}))severity error;
+        TempPass := false;
+      else
+        report "Output = " & integer'image(to_integer(DataOut{0})) severity note;
+      end if;)VHDL",
+                     i)
+           << endl;
+  }
+
+  Output << R"VHDL(
+      k := k + 1;
+    end loop;
+
+    OutputReady <= '1';
+    InputValid  <= '0';
+)VHDL" << endl;
+
+  // Checks for DataOut ports during assertion of OutputReady.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format(R"VHDL(    if (DataOut{0} /= Output1({0})) then
+      report "Incorrect DataOut at position {0}: " & integer'image(to_integer(DataOut{0})) & ". Expected : " & integer'image(Output1({0}))severity error;
+      TempPass := false;
+    else
+      report "Output = " & integer'image(to_integer(DataOut{0})) severity note;
+    end if;)VHDL",
+                     i)
+           << endl;
+  }
+
+  Output << format(R"VHDL(
+    wait until Clk'event and Clk = '1';
+
+    Pass := TempPass;
+
+    if (TempPass = true) then
+      report "Test 1b : PASS" severity warning;
+    else
+      report "Test 1b : FAIL" severity error;
+    end if;
+
+  end procedure Test1b_{0}x{1};
+
+  --------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- Test 2 : Calculation. Overflow and Underflow detection.
+  --------------------------------------------------------------------
+  -- Test 2a : Calculation. Overflow detection test.
+  --------------------------------------------------------------------
+  procedure Test2a_{0}x{1}(
+    signal OutputValid : in std_logic;
+    signal InputReady  : in std_logic;
+    signal ErrorCheck  : in std_logic_vector({2} downto 0);
+    signal ClockCount  : in integer;
+    signal Clk         : in std_logic;)VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  // Dataout ports for Test_2a.
+  for (int i = 0; i < Specs.M; i++)
+  {
+    Output << format("    signal DataOut{0}    : in signed (((DataWidth * 2) - 1) downto 0);", i) << endl;
+  }
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
+         << endl;
+
+  Output << format(R"VHDL()VHDL",
+                   Specs.M, Specs.N, ErrorCheckWidth)
          << endl;
 
   Output.close();

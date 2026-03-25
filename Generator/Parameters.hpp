@@ -11,8 +11,8 @@ using namespace std;
 class Parameters
 {
 public:
-    uint32_t M = 3; // Rows
-    uint32_t N = 4; // Columns
+    uint32_t M = 3; // Rows. [2, 32]
+    uint32_t N = 4; // Columns. [2, 32]
     uint32_t T = 8; // Width [4,32]
 
     vector<vector<int_fast32_t>> WMatrix{
@@ -26,7 +26,7 @@ public:
         {-70, -17, -75, 3},    // No overflow/undeflow.
         {105, -122, -93, -86}, // Overflow in row 2.
         {-105, 122, 93, 86},   // Underflow in row 2.
-        {76, -99, 85, -91},    // Overflow in ro1 1, underflow in row 3.
+        {76, -99, 85, -91},    // Overflow in row 1, underflow in row 3.
         {-55, -14, -5, 32}     // No underflow/overflow.
     };
 
