@@ -593,10 +593,22 @@ package body Tests3x4 is
     while k < 5 loop
 
       wait until Clk'event and Clk = '1';
+      if (ErrorCheck(3 downto 0) = "1000") then
 
-      -- The test must check that 3 downto 0 will be "1000" and the rest is going to be zeroes, regardless of length and it must also work for 2x2. The test needs to be adapted, along with subsequent overflow/underflow checks in this and other tests.
-      if ((ErrorCheck (ErrorCheck'high downto (ErrorCheck'high - 2)) = "001") and (unsigned(ErrorCheck) mod (2 ** (ErrorCheck'length - 3))) = 0) then
-        report "ErrorCheck got raised correctly because of an overflow. ClockCount: " & integer'image(ClockCount) severity note;
+        --  Minimum rows is 2.
+        if (ErrorCheck'length = 4) then
+          report "ErrorCheck got raised correctly because of an overflow. ClockCount: " & integer'image(ClockCount) severity note;
+        else
+
+          -- Checking for rows > 2.
+          if (unsigned (ErrorCheck(ErrorCheck'high downto 4)) mod (2 ** (ErrorCheck'length - 4)) = 0) then
+            report "ErrorCheck got raised correctly because of an overflow. ClockCount: " & integer'image(ClockCount) severity note;
+          else
+            report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
+            TempPass := false;
+          end if;
+        end if;
+
       else
         report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
@@ -688,8 +700,23 @@ package body Tests3x4 is
 
       wait until Clk'event and Clk = '1';
 
-      if (ErrorCheck = "000100") then
-        report "ErrorCheck got raised correctly because of an underflow. ClockCount: " & integer'image(ClockCount) severity note;
+      wait until Clk'event and Clk = '1';
+
+      if (ErrorCheck(3 downto 0) = "0100") then
+        --  Minimum rows is 2.
+        if (ErrorCheck'length = 4) then
+          report "ErrorCheck got raised correctly because of an underflow. ClockCount: " & integer'image(ClockCount) severity note;
+        else
+
+          -- Checking for rows > 2.
+          if (unsigned (ErrorCheck(ErrorCheck'high downto 4)) mod (2 ** (ErrorCheck'length - 4)) = 0) then
+            report "ErrorCheck got raised correctly because of an underflow. ClockCount: " & integer'image(ClockCount) severity note;
+          else
+            report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
+            TempPass := false;
+          end if;
+        end if;
+
       else
         report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
@@ -781,8 +808,21 @@ package body Tests3x4 is
 
       wait until Clk'event and Clk = '1';
 
-      if (ErrorCheck = "010010") then
-        report "ErrorCheck got raised correctly. ClockCount: " & integer'image(ClockCount) severity note;
+      if (ErrorCheck(3 downto 0) = "0010") then
+        --  Minimum rows is 2.
+        if (ErrorCheck'length = 4) then
+          report "ErrorCheck got raised correctly. ClockCount: " & integer'image(ClockCount) severity note;
+        else
+
+          -- Checking for rows > 2.
+          if (unsigned (ErrorCheck(ErrorCheck'high downto 4)) mod (2 ** (ErrorCheck'length - 4)) = 1) then
+            report "ErrorCheck got raised correctly. ClockCount: " & integer'image(ClockCount) severity note;
+          else
+            report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
+            TempPass := false;
+          end if;
+        end if;
+
       else
         report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
@@ -885,7 +925,7 @@ package body Tests3x4 is
         TempPass := false;
       end if;
       -- ErrorCheck must not be affected in any way while loading.
-      if (ErrorCheck /= "000000") then
+      if (ErrorCheck /= (ErrorCheck'range => '0')) then
         report "ErrorCheck got raised erratically. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
       end if;
@@ -979,7 +1019,7 @@ package body Tests3x4 is
         TempPass := false;
       end if;
       -- ErrorCheck must not be affected in any way while loading.
-      if (ErrorCheck /= "000000") then
+      if (ErrorCheck /= (ErrorCheck'range => '0')) then
         report "ErrorCheck got raised erratically. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
       end if;
@@ -1010,7 +1050,7 @@ package body Tests3x4 is
       TempPass := false;
     end if;
 
-    if (ErrorCheck /= "000000") then
+    if (ErrorCheck /= (ErrorCheck'range => '0')) then
       report "ErrorCheck does not reset properly. Test0. Clock: " & integer'image(ClockCount) severity error;
       TempPass := false;
     end if;
@@ -1084,7 +1124,7 @@ package body Tests3x4 is
       end if;
 
       -- ErrorCheck must remain low in this test.
-      if (ErrorCheck /= "000000") then
+      if (ErrorCheck /= (ErrorCheck'range => '0')) then
         report "ErrorCheck got raised erratically. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
       end if;
@@ -1115,7 +1155,7 @@ package body Tests3x4 is
       TempPass := false;
     end if;
 
-    if (ErrorCheck /= "000000") then
+    if (ErrorCheck /= (ErrorCheck'range => '0')) then
       report "ErrorCheck does not reset properly. Test0. Clock: " & integer'image(ClockCount) severity error;
       TempPass := false;
     end if;
@@ -1189,7 +1229,7 @@ package body Tests3x4 is
       end if;
 
       -- ErrorCheck must remain low in this test.
-      if (ErrorCheck /= "000000") then
+      if (ErrorCheck /= (ErrorCheck'range => '0')) then
         report "ErrorCheck got raised erratically. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
       end if;
@@ -1203,8 +1243,21 @@ package body Tests3x4 is
 
       wait until Clk'event and Clk = '1';
 
-      if (ErrorCheck = "010010") then
-        report "ErrorCheck got raised correctly. ClockCount: " & integer'image(ClockCount) severity note;
+      if (ErrorCheck(3 downto 0) = "0010") then
+        --  Minimum rows is 2.
+        if (ErrorCheck'length = 4) then
+          report "ErrorCheck got raised correctly. ClockCount: " & integer'image(ClockCount) severity note;
+        else
+
+          -- Checking for rows > 2.
+          if (unsigned (ErrorCheck(ErrorCheck'high downto 4)) mod (2 ** (ErrorCheck'length - 4)) = 1) then
+            report "ErrorCheck got raised correctly. ClockCount: " & integer'image(ClockCount) severity note;
+          else
+            report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
+            TempPass := false;
+          end if;
+        end if;
+
       else
         report "ErrorCheck did not get raised properly. ClockCount: " & integer'image(ClockCount) severity error;
         TempPass := false;
@@ -1235,7 +1288,7 @@ package body Tests3x4 is
     wait until Clk'event and Clk = '1';
 
     -- ErrorCheck needs an extra CC to reset. This doesn't matter really, as long as OutputValid is low during that cycle.
-    if (ErrorCheck /= "000000") then
+    if (ErrorCheck /= (ErrorCheck'range => '0')) then
       report "ErrorCheck does not reset properly. Test0. Clock: " & integer'image(ClockCount) severity error;
       TempPass := false;
     end if;
