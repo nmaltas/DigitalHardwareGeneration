@@ -36,10 +36,34 @@ public:
 
     Parameters()
     {
+
+        if (M < 2 || M > 32)
+        {
+            ValidSpecs = false;
+            cout << "Number of rows M out of bounds. It has to be within [2,32]." << endl;
+        }
+
+        if (N < 2 || N > 32)
+        {
+            ValidSpecs = false;
+            cout << "Number of coluns N out of bounds. It has to be within [2,32]." << endl;
+        }
+
+        if (T < 4 || T > 32)
+        {
+            ValidSpecs = false;
+            cout << "Number width T out of bounds. It has to be within [4,32]." << endl;
+        }
     }
 
     bool Verify()
     {
+
+        if (ValidSpecs == false)
+        {
+            return ValidSpecs;
+        }
+
         // Built-in self-verification for parameters matching matrix dimensions.
         cout << "> Verifying spec values and matrix dimensions..." << endl;
         ValidSpecs = true;
