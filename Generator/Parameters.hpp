@@ -12,30 +12,33 @@ class Parameters
 {
 public:
     uint32_t M = 3; // Rows. [2, 32]
-    uint32_t N = 4; // Columns. [2, 32]
+    uint32_t N = 3; // Columns. [2, 32]
     uint32_t T = 8; // Width [4,32]
 
     vector<vector<int_fast32_t>> WMatrix{
-        {116, -121, 113, -125},
-        {94, -107, -113, -99},
-        {-116, 121, -113, 125}};
+        {116, -121, 113},
+        {94, -107, -113},
+        {-116, 121, -113}};
 
     vector<int_fast32_t> BMatrix{101, 83, -55};
 
     vector<vector<int_fast32_t>> XMatrix{
-        {-70, -17, -75, 3},    // No overflow/undeflow.
-        {105, -122, -93, -86}, // Overflow in row 2.
-        {-105, 122, 93, 86},   // Underflow in row 2.
-        {76, -99, 85, -91},    // Overflow in row 1, underflow in row 3.
-        {-55, -14, -5, 32}     // No underflow/overflow.
+        {-70, -17, -75},  // No overflow/undeflow.
+        {105, -122, -93}, // Overflow in row 2.
+        {-105, 122, 93},  // Underflow in row 2.
+        {118, -120, 85},  // Overflow in row 1, underflow in row 3.
+        {-55, -14, -5}    // No underflow/overflow.
     };
 
     bool ValidSpecs = true;
 
     string Libraries = "library IEEE;\nuse IEEE.STD_LOGIC_1164.all;\nuse ieee.numeric_std.all;\n";
 
+    string FolderName;
+
     Parameters()
     {
+        ReadFile();
 
         if (M < 2 || M > 32)
         {
@@ -54,6 +57,8 @@ public:
             ValidSpecs = false;
             cout << "Number width T out of bounds. It has to be within [4,32]." << endl;
         }
+
+        FolderName = format("{}x{}_{}b", M, N, T);
     }
 
     bool Verify()
@@ -126,6 +131,23 @@ public:
         }
 
         return ValidSpecs;
+    }
+
+private:
+    bool ReadFile()
+    {
+        ifstream ParameterFile;
+        ParameterFile.open("Parameters.csv");
+
+        if (!ParameterFile)
+        {
+            cout << "No parameters file found. Proceeding with hard-coded parameters and values." << endl;
+            return false;
+        }
+
+        ParameterFile.close();
+
+        return true;
     }
 };
 

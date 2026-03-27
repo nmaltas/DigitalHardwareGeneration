@@ -4,6 +4,7 @@
 #include <fstream>
 #include <format>
 #include <cmath>
+#include <filesystem>
 
 #include "Parameters.hpp"
 
@@ -36,6 +37,8 @@ int main()
   }
 
   PrintTables(Specs);
+
+  filesystem::create_directory(Specs.FolderName);
 
   GenerateROMB(Specs);
   GenerateMemoryX(Specs);
@@ -92,7 +95,7 @@ void PrintTables(const Parameters &Specs)
 void GenerateROMB(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("ROMB.vhd");
+  Output.open(Specs.FolderName + "\\ROMB.vhd");
   string Temp;
 
   Output << Specs.Libraries;
@@ -192,7 +195,7 @@ end ROMB1;)VHDL";
 void GenerateMemoryX(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("MemoryModule.vhd");
+  Output.open(Specs.FolderName + "\\MemoryModule.vhd");
 
   Output << Specs.Libraries;
 
@@ -260,7 +263,7 @@ end MemoryModule1;
 void GenerateROMW(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("ROMW.vhd");
+  Output.open(Specs.FolderName + "\\ROMW.vhd");
 
   Output << Specs.Libraries;
 
@@ -382,7 +385,7 @@ end ROMW1;)VHDL";
 void GenerateControlModule(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("ControlModule.vhd");
+  Output.open(Specs.FolderName + "\\ControlModule.vhd");
 
   Output << Specs.Libraries;
 
@@ -578,7 +581,7 @@ end ControlModule1;
 void GenerateMACUnit(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("MACUnit.vhd");
+  Output.open(Specs.FolderName + "\\MACUnit.vhd");
 
   Output << Specs.Libraries;
 
@@ -674,7 +677,7 @@ end MACUnit1;
 void GenerateDataPathModule(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("DatapathModule.vhd");
+  Output.open(Specs.FolderName + "\\DatapathModule.vhd");
 
   Output << Specs.Libraries;
 
@@ -954,7 +957,7 @@ begin
 void GenerateTopModule(const Parameters &Specs)
 {
   ofstream Output;
-  Output.open("TopModule.vhd");
+  Output.open(Specs.FolderName + "\\TopModule.vhd");
 
   Output << Specs.Libraries;
 
@@ -1138,7 +1141,7 @@ void GenerateTestbench(const Parameters &Specs)
 
   string InputTableWB;
   ofstream Output;
-  Output.open(format("TB_TopModule{0}x{1}.vhd", Specs.M, Specs.N));
+  Output.open(format("{2}\\TB_TopModule{0}x{1}.vhd", Specs.M, Specs.N, Specs.FolderName));
 
   Output << Specs.Libraries;
 
@@ -1542,7 +1545,7 @@ void GenerateTests(const Parameters &Specs)
   int OutputUpperBound = (1 << (2 * Specs.T)) - 1;  // It's supposed to be able to take values lower than -2^(2N-1). We want to be able to see if it over/underflows.
 
   ofstream Output;
-  Output.open(format("Tests{0}x{1}.vhd", Specs.M, Specs.N));
+  Output.open(format("{2}\\Tests{0}x{1}.vhd", Specs.M, Specs.N, Specs.FolderName));
 
   Output << Specs.Libraries;
 
